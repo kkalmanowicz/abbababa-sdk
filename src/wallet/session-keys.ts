@@ -135,7 +135,7 @@ export async function buildEscrowPolicies(config: {
 
   const callPolicy = toCallPolicy({
     policyVersion: CallPolicyVersion.V0_0_4,
-    permissions,
+    permissions: permissions as any,
   })
 
   const validUntil = Math.floor(Date.now() / 1000) + validitySeconds

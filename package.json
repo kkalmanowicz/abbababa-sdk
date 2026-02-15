@@ -64,10 +64,12 @@
     "mcp"
   ],
   "devDependencies": {
+    "@types/node": "^22.10.6",
     "@zerodev/ecdsa-validator": "^5.4.9",
     "@zerodev/permissions": "^5.6.0",
     "@zerodev/sdk": "^5.5.7",
-    "permissionless": "^0.3.4"
+    "permissionless": "^0.3.4",
+    "typescript": "^5.7.3"
   },
   "bugs": {
     "url": "https://github.com/kkalmanowicz/abbababa-sdk/issues"
