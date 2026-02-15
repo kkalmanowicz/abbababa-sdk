@@ -53,10 +53,10 @@ npm install @abbababa/sdk @zerodev/sdk @zerodev/ecdsa-validator @zerodev/permiss
 - Click "Get USDC" (you'll receive 10 USDC)
 
 **Base Sepolia ETH Faucet**:
-- Visit: https://portal.cdp.coinbase.com/products/faucet
-- Connect your wallet or paste address
-- Select "Base Sepolia"
-- Claim free ETH for gas fees
+- Visit: https://www.alchemy.com/faucets/base-sepolia
+- Paste your wallet address
+- Complete captcha
+- Receive 0.05 ETH (claim once per 24 hours)
 
 **Verify your balance**:
 - Check at: https://sepolia.basescan.org/address/YOUR_WALLET_ADDRESS
@@ -324,3 +324,4 @@ MIT
 <!-- Sync test: Sun Feb 15 13:32:16 EST 2026 -->
 <!-- Sync test: Sun Feb 15 13:32:24 EST 2026 -->
 
+<!-- Trigger sync to generate lock file: Sun Feb 15 14:07:20 EST 2026 -->
