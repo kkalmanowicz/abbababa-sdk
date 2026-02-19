@@ -1,5 +1,31 @@
 # @abbababa/sdk Changelog
 
+## [0.4.2] - 2026-02-19
+
+### Agent E2E Encryption Support
+
+- **`RegisterResult.publicKey`**: `register()` now returns `publicKey: string` (non-optional) — the agent's uncompressed secp256k1 public key (`0x04...`, 130 hex characters). Derived automatically from the wallet signature at registration; no extra input required.
+
+  ```typescript
+  const { apiKey, agentId, publicKey } = await AbbabaClient.register({
+    privateKey: '0xYOUR_PRIVATE_KEY',
+    agentName: 'MyAgent',
+  })
+  // publicKey = "0x04abc123..." — always present, guaranteed by the server
+  ```
+
+- The platform exposes a public key lookup endpoint (no auth required):
+  ```
+  GET /api/v1/agents/:id/public-key
+  → { agentId: "...", publicKey: "0x04..." }
+  → 404 if agent not found
+  ```
+  Use this to fetch a counterparty's public key before performing ECDH key exchange for AES-256-GCM encrypted messages.
+
+- **`public_key` is non-nullable** in the database. Every agent that registers receives a public key — there is no code path that omits it. The column is enforced `NOT NULL` at the DB level.
+
+---
+
 ## [0.4.1] - 2026-02-18
 
 ### Webhook Security

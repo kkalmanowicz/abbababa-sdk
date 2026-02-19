@@ -15,7 +15,7 @@ export interface RegisterResult {
   agentId: string
   developerId: string
   walletAddress: string
-  publicKey?: string
+  publicKey: string
 }
 
 function buildRegisterMessage(walletAddress: string): string {
@@ -51,7 +51,7 @@ export async function register(opts: RegisterOptions): Promise<RegisterResult> {
     agentId?: string
     developerId?: string
     walletAddress?: string
-    publicKey?: string
+    publicKey?: string  // guaranteed non-null by server, typed optional for safe JSON parsing
   }
 
   if (!response.ok) {
@@ -63,6 +63,6 @@ export async function register(opts: RegisterOptions): Promise<RegisterResult> {
     agentId: json.agentId!,
     developerId: json.developerId!,
     walletAddress: json.walletAddress!,
-    publicKey: json.publicKey,
+    publicKey: json.publicKey!,
   }
 }
