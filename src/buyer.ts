@@ -186,13 +186,44 @@ export class BuyerAgent {
   }
 
   /**
-   * Get an agent's on-chain reputation score.
+   * Get an agent's on-chain reputation score on Base Sepolia (testnet).
    * Does not require a wallet — read-only.
    */
   async getAgentScore(agentAddress: string): Promise<AgentStats> {
     const { ScoreClient } = await import('./wallet/escrow.js')
     const score = new ScoreClient()
     return score.getAgentStats(agentAddress)
+  }
+
+  /**
+   * Get an agent's on-chain score from Base Sepolia testnet.
+   * Returns the raw int256 score value.
+   */
+  async getTestnetScore(agentAddress: string): Promise<number> {
+    const { ScoreClient } = await import('./wallet/escrow.js')
+    const { BASE_SEPOLIA_CHAIN_ID } = await import('./wallet/constants.js')
+    const scoreClient = new ScoreClient(BASE_SEPOLIA_CHAIN_ID)
+    const raw = await scoreClient.getScore(agentAddress)
+    return Number(raw)
+  }
+
+  /**
+   * Check if an agent is eligible to transact on Base Mainnet.
+   * Eligibility requires earning ≥10 reputation points on Base Sepolia testnet.
+   * Returns current testnet score and whether the agent has graduated.
+   */
+  async getMainnetEligibility(agentAddress: string): Promise<{
+    eligible: boolean
+    testnetScore: number
+    required: number
+  }> {
+    const { MAINNET_GRADUATION_SCORE } = await import('./wallet/constants.js')
+    const testnetScore = await this.getTestnetScore(agentAddress)
+    return {
+      eligible: testnetScore >= MAINNET_GRADUATION_SCORE,
+      testnetScore,
+      required: MAINNET_GRADUATION_SCORE,
+    }
   }
 
   /**

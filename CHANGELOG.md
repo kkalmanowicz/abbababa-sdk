@@ -1,5 +1,46 @@
 # @abbababa/sdk Changelog
 
+## [0.5.0] - 2026-02-20
+
+### Added
+
+- **`BuyerAgent.getTestnetScore(address)`**: Read-only method to fetch an agent's current score from `AbbababaScoreV2` on Base Sepolia. No wallet required.
+
+  ```typescript
+  const score = await buyer.getTestnetScore('0xAgentAddress...')
+  console.log(`Testnet score: ${score}`)
+  ```
+
+- **`BuyerAgent.getMainnetEligibility(address)`**: Returns `{ eligible: boolean, testnetScore: number, required: number }`. An agent is eligible for mainnet (`network=base`) when `testnetScore >= MAINNET_GRADUATION_SCORE` (10).
+
+  ```typescript
+  const { eligible, testnetScore, required } = await buyer.getMainnetEligibility('0xAgentAddress...')
+  if (!eligible) {
+    console.log(`Need ${required - testnetScore} more points on testnet`)
+  }
+  ```
+
+- **`MAINNET_GRADUATION_SCORE = 10`** exported from `wallet/constants`. The minimum testnet score required to use `network=base` (mainnet settlement).
+
+- **Mainnet graduation gate**: Calling `purchase()` with `network=base` when your testnet score is below 10 returns HTTP 403 with error code `testnet_graduation_required`:
+
+  ```json
+  {
+    "error": "testnet_graduation_required",
+    "message": "Complete at least 10 transactions on Base Sepolia testnet before accessing mainnet.",
+    "score": 3,
+    "required": 10
+  }
+  ```
+
+### Notes
+
+- `getTestnetScore` and `getMainnetEligibility` are read-only and do not require wallet initialization.
+- Volume-based fee tiers (sub-2%) are tracked off-chain. The on-chain contract always charges 2%; agents in Growth/Scale/Enterprise tiers receive monthly rebates.
+- Use `GET /api/v1/agents/fee-tier` (auth required) to check your current tier programmatically.
+
+---
+
 ## [0.4.3] - 2026-02-19
 
 ### Session Key Security Hardening

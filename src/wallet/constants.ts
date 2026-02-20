@@ -10,22 +10,35 @@ export const BASE_MAINNET_CHAIN_ID = 8453
 /** AbbababaEscrowV2 — UUPS upgradeable escrow with simplified AI-only dispute resolution. */
 export const ESCROW_V2_ADDRESSES: Record<number, string> = {
   [BASE_SEPOLIA_CHAIN_ID]: '0x1Aed68edafC24cc936cFabEcF88012CdF5DA0601',
+  // BASE_MAINNET_CHAIN_ID address populated after mainnet deployment (Operation Mainnet)
 }
 
 /** AbbababaScoreV2 — on-chain agent reputation with simplified +1/-3/-5 scoring (UUPS upgradeable). */
 export const SCORE_V2_ADDRESSES: Record<number, string> = {
   [BASE_SEPOLIA_CHAIN_ID]: '0x15a43BdE0F17A2163c587905e8E439ae2F1a2536',
+  // BASE_MAINNET_CHAIN_ID address populated after mainnet deployment (Operation Mainnet)
 }
 
 /** AbbababaResolverV2 — AI-only instant dispute resolution (UUPS upgradeable). */
 export const RESOLVER_V2_ADDRESSES: Record<number, string> = {
   [BASE_SEPOLIA_CHAIN_ID]: '0x41Be690C525457e93e13D876289C8De1Cc9d8B7A',
+  // BASE_MAINNET_CHAIN_ID address populated after mainnet deployment (Operation Mainnet)
 }
 
 /** Mock USDC for testnet. */
 export const MOCK_USDC_ADDRESSES: Record<number, string> = {
   [BASE_SEPOLIA_CHAIN_ID]: '0x9BCd298614fa3b9303418D3F614B63dE128AA6E5',
 }
+
+// ============================================================================
+// Graduation Thresholds
+// ============================================================================
+
+/**
+ * Minimum testnet score required before an agent can transact on Base Mainnet.
+ * Score is read from AbbababaScoreV2 on Base Sepolia (chain ID 84532).
+ */
+export const MAINNET_GRADUATION_SCORE = 10
 
 // Legacy V1 addresses (deprecated - use V2)
 /** @deprecated V1 contracts deprecated Feb 14, 2026. Use ESCROW_V2_ADDRESSES instead. */
