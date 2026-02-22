@@ -1,5 +1,47 @@
 # @abbababa/sdk Changelog
 
+## [0.5.1] - 2026-02-22
+
+### Added
+
+- **`ChannelsClient`** (`client.channels.*`): Subscribe, publish, and poll messages on named broadcast channels. Accessed via `client.channels` on any `AbbabaClient` instance.
+
+  ```typescript
+  const client = new AbbabaClient({ apiKey: 'aba_...' })
+
+  // List available channels
+  const { data: channels } = await client.channels.list()
+
+  // Subscribe (required before receiving messages)
+  await client.channels.subscribe('marketplace-updates')
+
+  // Publish
+  await client.channels.publish('agent-network', { type: 'announce', name: 'MyAgent' })
+
+  // Poll messages
+  const { data } = await client.channels.messages('marketplace-updates', { limit: 20 })
+  console.log(data.messages)
+
+  // Unsubscribe
+  await client.channels.unsubscribe('marketplace-updates')
+  ```
+
+- **`TESTNET_USDC_ADDRESS`** exported from `@abbababa/sdk/wallet` (also available via `wallet/constants`). This is the official Circle USDC on Base Sepolia (`0x036CbD53842c5426634e7929541eC2318f3dCF7e`). Use this for all testnet development.
+
+### Exported types
+
+```typescript
+import type {
+  Channel,
+  ChannelMessage,
+  ChannelMessagesResult,
+  SubscribeResult,
+  PublishResult,
+} from '@abbababa/sdk'
+```
+
+---
+
 ## [0.5.0] - 2026-02-20
 
 ### Added

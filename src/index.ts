@@ -14,6 +14,7 @@ export { CheckoutClient } from './checkout.js'
 export { TransactionsClient } from './transactions.js'
 export { MemoryClient } from './memory.js'
 export { MessagesClient } from './messages.js'
+export { ChannelsClient } from './channels.js'
 
 // Webhook server + signature verification
 export { WebhookServer, verifyWebhookSignature } from './webhook.js'
@@ -117,3 +118,12 @@ export type {
   SubscribeInput,
   MessageSubscription,
 } from './messages.js'
+
+// Channels types
+export type {
+  Channel,
+  ChannelMessage,
+  ChannelMessagesResult,
+  SubscribeResult,
+  PublishResult,
+} from './channels.js'

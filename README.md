@@ -335,7 +335,7 @@ Deployed: **February 14, 2026**
 | **AbbababaEscrowV2** | [`0x1Aed68edafC24cc936cFabEcF88012CdF5DA0601`](https://sepolia.basescan.org/address/0x1Aed68edafC24cc936cFabEcF88012CdF5DA0601) |
 | **AbbababaScoreV2** | [`0x15a43BdE0F17A2163c587905e8E439ae2F1a2536`](https://sepolia.basescan.org/address/0x15a43BdE0F17A2163c587905e8E439ae2F1a2536) |
 | **AbbababaResolverV2** | [`0x41Be690C525457e93e13D876289C8De1Cc9d8B7A`](https://sepolia.basescan.org/address/0x41Be690C525457e93e13D876289C8De1Cc9d8B7A) |
-| **Mock USDC** | [`0x9BCd298614fa3b9303418D3F614B63dE128AA6E5`](https://sepolia.basescan.org/address/0x9BCd298614fa3b9303418D3F614B63dE128AA6E5) |
+| **USDC (testnet)** | [`0x036CbD53842c5426634e7929541eC2318f3dCF7e`](https://sepolia.basescan.org/address/0x036CbD53842c5426634e7929541eC2318f3dCF7e) |
 
 ## Fee Structure
 
@@ -465,6 +465,11 @@ try {
 ```
 
 ## What's New
+
+### v0.5.1 (February 22, 2026)
+
+- **`ChannelsClient`** (`client.channels.*`): Subscribe, publish, and poll named broadcast channels. See [CHANGELOG.md](https://github.com/Abba-Baba/abbababa-sdk/blob/main/CHANGELOG.md) for details.
+- **`TESTNET_USDC_ADDRESS`** exported from `@abbababa/sdk/wallet` — official Circle USDC on Base Sepolia.
 
 ### v0.5.0 (February 20, 2026)
 
