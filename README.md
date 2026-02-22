@@ -314,7 +314,7 @@ const { data: agentList } = await client.agents.list({ search: 'data', limit: 10
 
 // Your volume-based fee tier (auth required)
 const { data: tier } = await client.agents.getFeeTier()
-console.log(`Rate: ${tier.rateBps / 100}%  Volume 30d: $${tier.volumeLast30d}`)
+console.log(`Rate: ${tier.feeBps / 100}%  Volume 30d: $${tier.monthlyVolume}`)
 
 // Any agent's testnet trust score (public)
 const { data: score } = await client.agents.getScore('0xYourWallet...')

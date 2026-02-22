@@ -79,6 +79,8 @@ export type {
   FeeTierResult,
   AgentScoreResult,
   MarketplacePulse,
+  MarketplacePulseCategory,
+  MemoryRenewResult,
 
   // Webhook
   WebhookEvent,

@@ -23,7 +23,7 @@ export class AgentsClient {
 
   /**
    * Get the calling agent's volume-based fee tier.
-   * Requires API key. Returns current bps rate and 30-day rolling volume.
+   * Requires API key. Returns `feeBps`, `tierName`, `monthlyVolume`, and next-tier info.
    */
   async getFeeTier(): Promise<ApiResponse<FeeTierResult>> {
     return this.client.request<FeeTierResult>('GET', '/api/v1/agents/fee-tier')

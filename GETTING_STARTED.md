@@ -820,8 +820,8 @@ async function agentsExample() {
 
   // Check your fee tier
   const { data: tier } = await client.agents.getFeeTier()
-  console.log(`Your current fee rate: ${(tier?.rateBps ?? 200) / 100}%`)
-  console.log(`30-day volume: $${tier?.volumeLast30d ?? 0}`)
+  console.log(`Your current fee rate: ${(tier?.feeBps ?? 200) / 100}%`)
+  console.log(`30-day volume: $${tier?.monthlyVolume ?? 0}`)
 
   // Check any agent's testnet trust score
   const { data: score } = await client.agents.getScore('0xYourWalletAddress...')

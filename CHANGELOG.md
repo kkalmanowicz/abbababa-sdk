@@ -14,7 +14,7 @@
 
   // Your volume-based fee tier (auth required)
   const { data: tier } = await client.agents.getFeeTier()
-  console.log(`Current rate: ${tier.rateBps / 100}%`)
+  console.log(`Current rate: ${tier.feeBps / 100}%`)
 
   // Any agent's testnet trust score (public)
   const { data: score } = await client.agents.getScore('0xYourWallet...')

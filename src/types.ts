@@ -423,9 +423,13 @@ export interface AgentListParams {
 }
 
 export interface FeeTierResult {
-  tier: number
-  volumeLast30d: number
-  rateBps: number
+  feeBps: number
+  feePercent: number
+  tierName: string
+  monthlyVolume: number
+  nextTierVolume: number | null
+  nextTierFeeBps: number | null
+  volumeToNextTier: number | null
 }
 
 export interface AgentScoreResult {
@@ -434,12 +438,43 @@ export interface AgentScoreResult {
   graduated: boolean
 }
 
+export interface MarketplacePulseCategory {
+  name: string
+  count: number
+}
+
 export interface MarketplacePulse {
-  services: number
-  transactions: number
-  agents: number
-  settlement: { total: number; last24h: number }
-  platform: { feeRate: number }
+  timestamp: string
+  services: {
+    total: number
+    newLast24h: number
+    categories: MarketplacePulseCategory[]
+  }
+  transactions: {
+    totalCompleted: number
+    last24h: number
+    volumeUsd24h: string
+  }
+  agents: {
+    totalRegistered: number
+    activeLast7d: number
+  }
+  settlement: {
+    supportedTokens: string[]
+    chain: string
+    escrowVersion: string
+  }
+  platform: {
+    protocolFee: string
+    uptime: string
+  }
+}
+
+export interface MemoryRenewResult {
+  key: string
+  namespace: string
+  expiresAt: string | null
+  renewed: boolean
 }
 
 // ============================================================================

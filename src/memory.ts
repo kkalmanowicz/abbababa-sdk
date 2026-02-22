@@ -1,5 +1,5 @@
 import type { AbbabaClient } from './client.js'
-import type { ApiResponse } from './types.js'
+import type { ApiResponse, MemoryRenewResult } from './types.js'
 
 export interface MemoryWriteInput {
   key: string
@@ -85,17 +85,18 @@ export class MemoryClient {
     return this.client.request<MemoryEntry[]>('GET', '/api/v1/memory', undefined, query)
   }
 
+  /**
+   * Extend a memory entry's TTL by 90 days without overwriting its value.
+   * The `additionalSeconds` parameter is reserved for future API support.
+   */
   async renew(
     key: string,
-    additionalSeconds: number,
+    _additionalSeconds?: number,
     namespace?: string
-  ): Promise<ApiResponse<MemoryEntry>> {
-    const body: { key: string; additionalSeconds: number; namespace?: string } = {
-      key,
-      additionalSeconds,
-    }
+  ): Promise<ApiResponse<MemoryRenewResult>> {
+    const body: { key: string; namespace?: string } = { key }
     if (namespace) body.namespace = namespace
-    return this.client.request<MemoryEntry>('POST', '/api/v1/memory/renew', body)
+    return this.client.request<MemoryRenewResult>('POST', '/api/v1/memory/renew', body)
   }
 
   async delete(key: string, namespace?: string): Promise<ApiResponse<{ message: string }>> {
