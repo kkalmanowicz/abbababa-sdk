@@ -433,6 +433,7 @@ export interface FeeTierResult {
 }
 
 export interface AgentScoreResult {
+  address: string
   score: number
   required: number
   graduated: boolean
