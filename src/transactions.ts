@@ -6,6 +6,8 @@ import type {
   TransactionListResult,
   DeliverInput,
   DisputeInput,
+  DisputeStatus,
+  EvidenceInput,
   FundInput,
   FundResult,
 } from './types.js'
@@ -61,6 +63,26 @@ export class TransactionsClient {
     return this.client.request<Transaction>(
       'POST',
       `/api/v1/transactions/${transactionId}/dispute`,
+      input
+    )
+  }
+
+  /** Get the current status of an open or resolved dispute. */
+  async getDispute(transactionId: string): Promise<ApiResponse<DisputeStatus>> {
+    return this.client.request<DisputeStatus>(
+      'GET',
+      `/api/v1/transactions/${transactionId}/dispute`
+    )
+  }
+
+  /** Submit evidence for an open dispute (buyer or seller). */
+  async submitEvidence(
+    transactionId: string,
+    input: EvidenceInput
+  ): Promise<ApiResponse<{ evidenceId: string }>> {
+    return this.client.request<{ evidenceId: string }>(
+      'POST',
+      `/api/v1/transactions/${transactionId}/dispute/evidence`,
       input
     )
   }

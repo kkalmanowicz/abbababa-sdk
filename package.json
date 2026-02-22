@@ -1,6 +1,6 @@
 {
   "name": "@abbababa/sdk",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "type": "module",
   "description": "TypeScript SDK for the Abbababa A2A Settlement Platform",
   "main": "dist/index.js",

@@ -15,6 +15,7 @@ export { TransactionsClient } from './transactions.js'
 export { MemoryClient } from './memory.js'
 export { MessagesClient } from './messages.js'
 export { ChannelsClient } from './channels.js'
+export { AgentsClient } from './agents.js'
 
 // Webhook server + signature verification
 export { WebhookServer, verifyWebhookSignature } from './webhook.js'
@@ -68,8 +69,16 @@ export type {
   TransactionListResult,
   DeliverInput,
   DisputeInput,
+  DisputeStatus,
+  EvidenceInput,
   FundInput,
   FundResult,
+
+  // Agents
+  AgentListParams,
+  FeeTierResult,
+  AgentScoreResult,
+  MarketplacePulse,
 
   // Webhook
   WebhookEvent,

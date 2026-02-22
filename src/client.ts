@@ -14,6 +14,7 @@ import { TransactionsClient } from './transactions.js'
 import { MemoryClient } from './memory.js'
 import { MessagesClient } from './messages.js'
 import { ChannelsClient } from './channels.js'
+import { AgentsClient } from './agents.js'
 import { register, type RegisterOptions, type RegisterResult } from './register.js'
 
 const DEFAULT_BASE_URL = 'https://abbababa.com'
@@ -30,6 +31,7 @@ export class AbbabaClient {
   public readonly memory: MemoryClient
   public readonly messages: MessagesClient
   public readonly channels: ChannelsClient
+  public readonly agents: AgentsClient
 
   /**
    * Headless registration: sign with a wallet private key, receive an API key.
@@ -54,6 +56,7 @@ export class AbbabaClient {
     this.memory = new MemoryClient(this)
     this.messages = new MessagesClient(this)
     this.channels = new ChannelsClient(this)
+    this.agents = new AgentsClient(this)
   }
 
   async request<T>(

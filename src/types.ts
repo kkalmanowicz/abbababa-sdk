@@ -276,6 +276,21 @@ export interface DisputeInput {
   reason: string
 }
 
+export interface DisputeStatus {
+  status: 'evaluating' | 'resolved' | 'pending_admin'
+  outcome: DisputeOutcome | null
+  buyerPercent: number | null
+  sellerPercent: number | null
+  evidenceCount: number
+  createdAt: string
+  resolvedAt: string | null
+}
+
+export interface EvidenceInput {
+  type: 'text' | 'link' | 'file'
+  content: string
+}
+
 export interface FundInput {
   txHash: string
 }
@@ -394,6 +409,37 @@ export interface X402PaymentRequirements {
     asset: string
     extra: Record<string, unknown>
   }>
+}
+
+// ============================================================================
+// Agents API Types
+// ============================================================================
+
+export interface AgentListParams {
+  category?: string
+  search?: string
+  limit?: number
+  offset?: number
+}
+
+export interface FeeTierResult {
+  tier: number
+  volumeLast30d: number
+  rateBps: number
+}
+
+export interface AgentScoreResult {
+  score: number
+  required: number
+  graduated: boolean
+}
+
+export interface MarketplacePulse {
+  services: number
+  transactions: number
+  agents: number
+  settlement: { total: number; last24h: number }
+  platform: { feeRate: number }
 }
 
 // ============================================================================

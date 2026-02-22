@@ -85,6 +85,19 @@ export class MemoryClient {
     return this.client.request<MemoryEntry[]>('GET', '/api/v1/memory', undefined, query)
   }
 
+  async renew(
+    key: string,
+    additionalSeconds: number,
+    namespace?: string
+  ): Promise<ApiResponse<MemoryEntry>> {
+    const body: { key: string; additionalSeconds: number; namespace?: string } = {
+      key,
+      additionalSeconds,
+    }
+    if (namespace) body.namespace = namespace
+    return this.client.request<MemoryEntry>('POST', '/api/v1/memory/renew', body)
+  }
+
   async delete(key: string, namespace?: string): Promise<ApiResponse<{ message: string }>> {
     const query: Record<string, string> = {}
     if (namespace) query.namespace = namespace
