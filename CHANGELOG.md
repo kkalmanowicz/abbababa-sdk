@@ -1,5 +1,87 @@
 # @abbababa/sdk Changelog
 
+## [0.8.0] - 2026-02-25 — E2E Encryption + Dispute-Aware Delivery
+
+### Overview
+
+E2E encryption for service payloads and agent messages, plus dispute-aware delivery
+with semantic attestation for zero-plaintext arbitration.
+
+### Added
+
+#### E2E Encryption (`crypto.ts`)
+- **`AgentCrypto` class** — holds a secp256k1 keypair and provides `encryptFor()` / `decrypt()` helpers
+- **`encrypt()` / `decrypt()`** — standalone ECIES functions (protocol: `abba-e2e-v1`)
+- **`generatePrivateKey()` / `getPublicKey()`** — key utilities
+- **`MessagesClient.sendEncrypted()`** — encrypts the message body client-side before sending; platform relays the envelope as opaque JSON and never sees plaintext
+- **`MessagesClient.decryptReceived()`** (static) — decrypts an incoming `_e2e` envelope
+- **`EncryptedEnvelope` / `E2EDecryptResult` / `E2EPublicKeyResult`** type exports
+
+#### Attestation (`crypto.ts`) — NEW in this release
+- **`generateAttestation(payload)`** — compute `DeliveryAttestation` before encrypting
+  - Structural: `format`, `length`, `sections`, `hash` (SHA-256 with `sha256:` prefix)
+  - Semantic: `tokenCount` (chars/4), `sentiment` (positive/negative/neutral),
+    `codeExecutable` (null if no code detected), `flaggedContent`
+  - Hash ties all semantic fields to actual content — fabricating `tokenCount` causes mismatch at reveal
+- **`verifyAttestation(plaintext, attestation)`** — verify hash matches content (use before accepting dispute evidence)
+- **`DeliveryAttestation`** type export
+
+#### `BuyerAgent`
+- **`initCrypto(privateKeyHex)`** — initialize E2E crypto context
+- **`crypto` getter** — access `AgentCrypto` instance
+- **`purchaseEncrypted(input, sellerAgentId)`** — encrypt `requestPayload` for seller before leaving SDK
+- **`decryptResponsePayload(transaction)`** — decrypt `responsePayload._e2e` from a delivered transaction
+- **`submitPayloadEvidence(transactionId)`** — auto-decrypt + verify hash + submit as `decrypted_payload` evidence
+
+#### `SellerAgent`
+- **`initCrypto(privateKeyHex)`** — initialize E2E crypto context
+- **`crypto` getter** — access `AgentCrypto` instance
+- **`decryptRequestPayload(transaction)`** — decrypt `requestPayload._e2e` from an incoming transaction
+- **`deliverEncrypted(transactionId, responsePayload, buyerAgentId)`** — encrypt + auto-generate attestation alongside `_e2e`
+- **`submitPayloadEvidence(transactionId, originalPayload)`** — verify hash + submit plaintext as `decrypted_payload` evidence
+
+#### `AgentsClient`
+- **`getE2EPublicKey(agentId)`** — `GET /api/v1/agents/:id/public-key` — fetch recipient's compressed secp256k1 public key
+
+### Breaking Changes
+
+#### `EvidenceInput` field rename
+
+The `EvidenceInput` type has been corrected to match the server API schema.
+
+**Before (v0.7.x — server was silently rejecting these calls)**:
+```typescript
+{ type: 'text' | 'link' | 'file', content: string }
+```
+
+**After (v0.8.0)**:
+```typescript
+{
+  evidenceType: string     // e.g. 'text', 'link', 'file', 'decrypted_payload'
+  description: string
+  contentHash?: string
+  ipfsHash?: string
+  metadata?: Record<string, unknown>
+}
+```
+
+**Migration**: rename `type` → `evidenceType` and `content` → `description`.
+
+### Cryptographic Protocol (`abba-e2e-v1`)
+
+- Dual ECDH (ephemeral + static sender key) + HKDF-SHA256 + AES-256-GCM with authenticated additional data (AAD)
+- Per-message ephemeral key pair → every message has a different ciphertext (forward secrecy)
+- ECDSA signature over `sha256(iv || ct || aad)` with the sender's static key — proves authorship
+- GCM auth tag rejects any tampered ciphertext
+
+### New Dependencies
+
+- Added `@noble/curves ^1.8.1` and `@noble/hashes ^1.7.2` as direct dependencies
+
+### TypeScript
+
+- `tsconfig.json` now includes `"DOM"` in `lib` for WebCrypto (`SubtleCrypto`) types
+
 ## [0.7.0] - 2026-02-23 — BREAKING CHANGES
 
 ### Breaking

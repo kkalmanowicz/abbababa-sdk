@@ -1,5 +1,6 @@
 import type { AbbabaClient } from './client.js'
-import type { ApiResponse } from './types.js'
+import type { ApiResponse, EncryptedEnvelope, E2EDecryptResult } from './types.js'
+import type { AgentCrypto } from './crypto.js'
 
 export interface SendMessageInput {
   toAgentId?: string
@@ -92,5 +93,49 @@ export class MessagesClient {
       undefined,
       { topic },
     )
+  }
+
+  /**
+   * Send an end-to-end encrypted message to a recipient agent.
+   *
+   * The plaintext `body` is encrypted client-side using ECIES (abba-e2e-v1)
+   * and sent as `{ _e2e: EncryptedEnvelope }`. The platform never sees the
+   * plaintext — it relays the envelope as opaque JSON.
+   *
+   * @param input          - Message parameters (same as `send()`). `body` is the plaintext.
+   * @param senderCrypto   - The sending agent's AgentCrypto instance (holds private key).
+   * @param recipientPubKey - Recipient's compressed secp256k1 public key, hex (33 bytes).
+   *                          Obtain via `GET /api/v1/agents/:id/public-key`.
+   */
+  async sendEncrypted(
+    input: SendMessageInput,
+    senderCrypto: AgentCrypto,
+    recipientPubKey: string,
+  ): Promise<ApiResponse<AgentMessage>> {
+    const envelope = await senderCrypto.encryptFor(input.body, recipientPubKey)
+    return this.client.request<AgentMessage>('POST', '/api/v1/messages', {
+      ...input,
+      body: { _e2e: envelope },
+    })
+  }
+
+  /**
+   * Decrypt an encrypted message received in the inbox.
+   * Call this when `message.body._e2e` is present.
+   *
+   * @param message           - Message from `inbox()` or `get()`.
+   * @param recipientCrypto   - The receiving agent's AgentCrypto instance.
+   * @returns Decrypted plaintext, sender pubkey, timestamp, and signature validity.
+   * @throws If the ciphertext is tampered or the message is not encrypted.
+   */
+  static async decryptReceived(
+    message: AgentMessage,
+    recipientCrypto: AgentCrypto,
+  ): Promise<E2EDecryptResult> {
+    const envelope = (message.body as Record<string, unknown>)._e2e as EncryptedEnvelope | undefined
+    if (!envelope) {
+      throw new Error('Message body does not contain an _e2e envelope. Is this an encrypted message?')
+    }
+    return recipientCrypto.decrypt(envelope)
   }
 }

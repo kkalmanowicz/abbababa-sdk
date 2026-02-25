@@ -293,8 +293,12 @@ export interface DisputeStatus {
 }
 
 export interface EvidenceInput {
-  type: 'text' | 'link' | 'file'
-  content: string
+  /** Open string matching the server Zod schema (e.g. 'text', 'link', 'file', 'decrypted_payload'). */
+  evidenceType: string
+  description: string
+  contentHash?: string
+  ipfsHash?: string
+  metadata?: Record<string, unknown>
 }
 
 export interface FundInput {
@@ -492,6 +496,102 @@ export interface DiscoveryScoreResult {
   onChainScore: number
   /** ISO timestamp of the last on-chain score sync. */
   lastSynced: string
+}
+
+// ============================================================================
+// E2E Encryption Types (abba-e2e-v1)
+// ============================================================================
+
+/**
+ * Wire envelope for an ECIES-encrypted message.
+ * Sent as the `_e2e` field inside a message body so the platform
+ * relays it as opaque JSON without reading plaintext.
+ */
+export interface EncryptedEnvelope {
+  /** Protocol version — always 1 for abba-e2e-v1. */
+  v: 1
+  /** Sender's compressed secp256k1 public key, hex (33 bytes). */
+  from: string
+  /** Recipient's compressed secp256k1 public key, hex (33 bytes). */
+  to: string
+  /** Ephemeral compressed public key used in ECDH_1, hex (33 bytes). */
+  epk: string
+  /** HKDF salt, hex (16 bytes, random per message). */
+  salt: string
+  /** AES-GCM nonce, hex (12 bytes, random per message). */
+  iv: string
+  /** Ciphertext + 16-byte GCM auth tag, hex. */
+  ct: string
+  /** ECDSA signature over sha256(iv || ct || aad), DER hex. */
+  sig: string
+  /** Unix timestamp ms at encryption time. */
+  ts: number
+}
+
+/**
+ * Plaintext attestation included alongside an `_e2e` encrypted envelope.
+ *
+ * All fields are computed from the plaintext before encryption. The `hash`
+ * (SHA-256 of the canonical JSON) ties every field to the actual content —
+ * a seller cannot fabricate `tokenCount` or `sentiment` without the hash
+ * failing at dispute time when they reveal the plaintext.
+ *
+ * This is the "enclave-equivalent without the enclave": the resolver reads
+ * these public facts without ever decrypting the content.
+ */
+export interface DeliveryAttestation {
+  /** Always `'json'` for `Record<string, unknown>` payloads. */
+  format: 'json' | 'text' | 'markdown' | 'code'
+  /** Byte length of the canonical JSON string — proves delivery was non-trivial. */
+  length: number
+  /** Top-level keys of the payload — proves structural completeness. */
+  sections: string[]
+  /**
+   * SHA-256 of the canonical JSON string, hex-encoded with `sha256:` prefix.
+   * Every semantic field is tied to this — fabricating any field causes hash mismatch at reveal.
+   */
+  hash: string
+  /** ISO timestamp set by the seller at delivery time. */
+  delivered_at: string
+  /**
+   * Approximate GPT-style token count (chars / 4).
+   * Proves the delivery was substantial without revealing content.
+   */
+  tokenCount: number
+  /**
+   * Keyword-based sentiment of the stringified payload.
+   * Useful signal: a "negative" delivery suggests failure or an error response.
+   */
+  sentiment: 'positive' | 'negative' | 'neutral'
+  /**
+   * Whether code fields in the payload passed a basic syntax check.
+   * `null` if no code-like fields were detected.
+   */
+  codeExecutable: boolean | null
+  /**
+   * Whether a basic content filter flagged the payload.
+   * `false` = clean. Can be extended with a custom filter via `generateAttestation()`.
+   */
+  flaggedContent: boolean
+}
+
+/** Response from `GET /api/v1/agents/:id/public-key`. */
+export interface E2EPublicKeyResult {
+  agentId: string
+  /** Compressed secp256k1 public key, hex (33 bytes). Pass to `AgentCrypto.encryptFor()`. */
+  publicKey: string
+}
+
+/** Result from decrypting an EncryptedEnvelope. */
+export interface E2EDecryptResult {
+  /** Decrypted plaintext object. */
+  plaintext: Record<string, unknown>
+  /** Whether the sender's ECDSA signature was valid. Always verify before trusting content. */
+  verified: boolean
+  /** Sender's compressed secp256k1 public key, hex. */
+  from: string
+  /** Unix timestamp ms from the envelope (set by sender — treat as informational). */
+  ts: number
 }
 
 // ============================================================================

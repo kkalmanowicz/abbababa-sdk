@@ -1,5 +1,6 @@
 import { AbbabaClient } from './client.js'
 import { WebhookServer } from './webhook.js'
+import { AgentCrypto, verifyAttestation } from './crypto.js'
 import type {
   AbbabaConfig,
   Service,
@@ -14,6 +15,9 @@ import type {
   SessionKeyResult,
   UseSessionKeyConfig,
   AgentStats,
+  E2EDecryptResult,
+  EncryptedEnvelope,
+  DeliveryAttestation,
 } from './types.js'
 
 export class BuyerAgent {
@@ -22,6 +26,7 @@ export class BuyerAgent {
   private walletAddress: string | null = null
   private kernelClient: unknown = null
   private resolvedGasStrategy: 'self-funded' | 'erc20' | null = null
+  private _crypto: AgentCrypto | null = null
 
   constructor(config: AbbabaConfig) {
     this.client = new AbbabaClient(config)
@@ -267,5 +272,138 @@ export class BuyerAgent {
   /** Returns the resolved gas strategy after initWallet() or initWithSessionKey(). */
   getGasStrategy(): 'self-funded' | 'erc20' | null {
     return this.resolvedGasStrategy
+  }
+
+  /**
+   * Purchase a service with an encrypted `requestPayload`.
+   *
+   * Encrypts `input.requestPayload` client-side using the seller agent's E2E public key
+   * before the request leaves the SDK. The platform stores `{ _e2e: EncryptedEnvelope }`
+   * and the seller decrypts it with `decryptRequestPayload()`. The platform never sees
+   * the plaintext job spec.
+   *
+   * Requires `initCrypto()` to have been called first.
+   *
+   * @param input          - Checkout parameters. `requestPayload` is the plaintext to encrypt.
+   * @param sellerAgentId  - The seller agent's ID. Their E2E public key is fetched automatically.
+   */
+  async purchaseEncrypted(input: CheckoutInput, sellerAgentId: string): Promise<CheckoutResult> {
+    if (!this._crypto) {
+      throw new Error('E2E crypto not initialized. Call initCrypto() first.')
+    }
+    const keyRes = await this.client.agents.getE2EPublicKey(sellerAgentId)
+    if (!keyRes.success || !keyRes.data) {
+      throw new Error(keyRes.error ?? 'Could not fetch seller E2E public key')
+    }
+    const sellerPubKey = keyRes.data.publicKey
+    const plainPayload = (input.requestPayload ?? {}) as Record<string, unknown>
+    const envelope = await this._crypto.encryptFor(plainPayload, sellerPubKey)
+    const res = await this.client.checkout.purchase({
+      ...input,
+      requestPayload: { _e2e: envelope },
+    })
+    if (!res.success || !res.data) {
+      throw new Error(res.error ?? 'Purchase failed')
+    }
+    return res.data
+  }
+
+  /**
+   * Decrypt an encrypted `responsePayload` from a completed transaction.
+   *
+   * Call this after the seller delivers — if the seller used `deliverEncrypted()`,
+   * `transaction.responsePayload` will be `{ _e2e: EncryptedEnvelope }`.
+   *
+   * Requires `initCrypto()` to have been called first.
+   *
+   * @throws If the payload is not encrypted or the crypto context is missing.
+   */
+  async decryptResponsePayload(transaction: Transaction): Promise<E2EDecryptResult> {
+    if (!this._crypto) {
+      throw new Error('E2E crypto not initialized. Call initCrypto() first.')
+    }
+    const payload = transaction.responsePayload as Record<string, unknown> | null | undefined
+    if (!payload?._e2e) {
+      throw new Error(
+        'responsePayload does not contain an _e2e envelope. Was it sent with deliverEncrypted()?'
+      )
+    }
+    return this._crypto.decrypt(payload._e2e as import('./types.js').EncryptedEnvelope)
+  }
+
+  /**
+   * Auto-decrypt the encrypted `responsePayload` and submit it as dispute evidence.
+   *
+   * Fetches the transaction, decrypts `responsePayload._e2e`, verifies the sender
+   * signature, optionally verifies the attestation hash, then submits as
+   * `decrypted_payload` evidence to give the resolver full plaintext.
+   *
+   * Requires `initCrypto()` to have been called first.
+   *
+   * @param transactionId - The disputed transaction.
+   */
+  async submitPayloadEvidence(
+    transactionId: string,
+  ): Promise<ApiResponse<{ evidenceId: string }>> {
+    if (!this._crypto) {
+      throw new Error('E2E crypto not initialized. Call initCrypto() first.')
+    }
+    const txRes = await this.client.transactions.get(transactionId)
+    if (!txRes.success || !txRes.data) {
+      throw new Error(txRes.error ?? 'Could not fetch transaction')
+    }
+    const rp = txRes.data.responsePayload as Record<string, unknown> | null | undefined
+    if (!rp?._e2e) {
+      throw new Error(
+        'responsePayload does not contain an _e2e envelope. Was it sent with deliverEncrypted()?'
+      )
+    }
+
+    const result = await this._crypto.decrypt(rp._e2e as EncryptedEnvelope)
+    const attestation = rp.attestation as DeliveryAttestation | undefined
+
+    let hashVerified = false
+    if (attestation) {
+      hashVerified = verifyAttestation(result.plaintext, attestation)
+    }
+
+    return this.client.transactions.submitEvidence(transactionId, {
+      evidenceType: 'decrypted_payload',
+      description: `Buyer discloses encrypted responsePayload. Sender sig verified: ${result.verified}. Hash verified: ${hashVerified}`,
+      contentHash: attestation?.hash,
+      metadata: {
+        role: 'buyer',
+        payload: result.plaintext,
+        senderVerified: result.verified,
+        hashVerified,
+      },
+    })
+  }
+
+  /**
+   * Initialize E2E encryption for this agent using a secp256k1 private key.
+   * After calling this, use `this.crypto` to encrypt messages for recipients
+   * and decrypt messages received from them.
+   *
+   * Store the private key in your secret manager — losing it means you
+   * cannot decrypt historical messages. The derived public key is shared
+   * with recipients so they can encrypt messages addressed to you.
+   *
+   * @param privateKeyHex - 32-byte secp256k1 private key, hex string.
+   *                        Generate one with `AgentCrypto.generate()`.
+   */
+  initCrypto(privateKeyHex: string): AgentCrypto {
+    this._crypto = AgentCrypto.fromPrivateKey(privateKeyHex)
+    return this._crypto
+  }
+
+  /**
+   * The agent's E2E crypto context. `null` until `initCrypto()` is called.
+   * Use `crypto.publicKey` to share your address with senders.
+   * Use `crypto.encryptFor(body, recipientPubKey)` to encrypt outgoing messages.
+   * Use `MessagesClient.decryptReceived(message, crypto)` to decrypt incoming ones.
+   */
+  get crypto(): AgentCrypto | null {
+    return this._crypto
   }
 }

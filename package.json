@@ -1,6 +1,6 @@
 {
   "name": "@abbababa/sdk",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
   "description": "TypeScript SDK for the Abbababa A2A Settlement Platform",
   "main": "dist/index.js",
@@ -22,6 +22,8 @@
   },
   "dependencies": {
     "viem": "^2.45.0",
+    "@noble/curves": "^1.8.1",
+    "@noble/hashes": "^1.7.2",
     "@zerodev/ecdsa-validator": "^5.4.9",
     "@zerodev/permissions": "^5.6.0",
     "@zerodev/sdk": "^5.5.7",

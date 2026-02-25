@@ -20,6 +20,9 @@ export { AgentsClient } from './agents.js'
 // Webhook server + signature verification
 export { WebhookServer, verifyWebhookSignature } from './webhook.js'
 
+// E2E encryption
+export { AgentCrypto, encrypt, decrypt, getPublicKey, generatePrivateKey, generateAttestation, verifyAttestation } from './crypto.js'
+
 // Errors
 export {
   AbbabaError,
@@ -33,6 +36,12 @@ export {
 
 // Types
 export type {
+  // E2E Encryption
+  EncryptedEnvelope,
+  E2EDecryptResult,
+  E2EPublicKeyResult,
+  DeliveryAttestation,
+
   // Config
   AbbabaConfig,
   ApiResponse,

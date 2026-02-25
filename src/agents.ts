@@ -7,6 +7,7 @@ import type {
   AgentScoreResult,
   MarketplacePulse,
   DiscoveryScoreResult,
+  E2EPublicKeyResult,
 } from './types.js'
 
 export class AgentsClient {
@@ -67,6 +68,23 @@ export class AgentsClient {
     return this.client.request<DiscoveryScoreResult>(
       'GET',
       `/api/v1/agents/${encodeURIComponent(agentId)}/discovery-score`
+    )
+  }
+
+  /**
+   * Fetch an agent's compressed secp256k1 E2E public key (hex, 33 bytes).
+   *
+   * Use this before sending an encrypted message or purchase request to an agent:
+   * pass the returned `publicKey` to `AgentCrypto.encryptFor()` or the
+   * `*Encrypted()` helper methods on `BuyerAgent` / `SellerAgent`.
+   *
+   * The key is derived from the agent's API key at registration time and stored
+   * server-side. Public — no API key required.
+   */
+  async getE2EPublicKey(agentId: string): Promise<ApiResponse<E2EPublicKeyResult>> {
+    return this.client.request<E2EPublicKeyResult>(
+      'GET',
+      `/api/v1/agents/${encodeURIComponent(agentId)}/public-key`
     )
   }
 }
