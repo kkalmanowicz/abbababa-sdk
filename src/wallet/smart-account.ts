@@ -23,16 +23,18 @@ const CHAINS: Record<string, Chain> = {
 /**
  * Resolve the gas strategy for a kernel client.
  *
- * - 'self-funded': No paymaster — account pays gas with native POL.
+ * - 'self-funded': No paymaster — account pays gas with native ETH.
  * - 'erc20': ERC-20 paymaster — account pays gas in USDC.
- * - 'auto': Check POL balance — use self-funded if sufficient, otherwise erc20.
+ * - 'sponsored': ZeroDev UltraRelay — platform sponsors gas via ERC-7683 relayer.
+ *   30% less gas, 20% lower latency than standard ERC-4337. Supported on Base + Base Sepolia.
+ * - 'auto': Check ETH balance — use self-funded if sufficient, otherwise erc20.
  */
 async function resolveGasStrategy(
   strategy: GasStrategy,
   publicClient: ReturnType<typeof createPublicClient>,
   accountAddress: string
-): Promise<'self-funded' | 'erc20'> {
-  if (strategy === 'self-funded' || strategy === 'erc20') {
+): Promise<'self-funded' | 'erc20' | 'sponsored'> {
+  if (strategy === 'self-funded' || strategy === 'erc20' || strategy === 'sponsored') {
     return strategy
   }
 
@@ -54,10 +56,28 @@ export async function buildKernelClient(opts: {
   chain: Chain
   bundlerUrl: string
   paymasterUrl: string
-  gasStrategy: 'self-funded' | 'erc20'
+  gasStrategy: 'self-funded' | 'erc20' | 'sponsored'
 }): Promise<unknown> {
   const sdk = await import('@zerodev/sdk')
   const { createKernelAccountClient, createZeroDevPaymasterClient } = sdk
+
+  // UltraRelay (ERC-7683): platform sponsors gas — no paymaster needed.
+  // Zeroed gas fees let the relayer inject actual prices at execution.
+  // 30% less gas + 20% lower latency vs standard ERC-4337.
+  // Supported on Base Mainnet and Base Sepolia.
+  if (opts.gasStrategy === 'sponsored') {
+    return createKernelAccountClient({
+      account: opts.account as any,
+      chain: opts.chain,
+      bundlerTransport: http(`${opts.bundlerUrl}?provider=ULTRA_RELAY`),
+      userOperation: {
+        estimateFeesPerGas: async () => ({
+          maxFeePerGas: BigInt(0),
+          maxPriorityFeePerGas: BigInt(0),
+        }),
+      },
+    })
+  }
 
   if (opts.gasStrategy === 'erc20') {
     const usdcToken = getToken(opts.chain.id, 'USDC')
@@ -99,9 +119,12 @@ export async function buildKernelClient(opts: {
  * Create a ZeroDev Kernel smart account (ERC-7579).
  *
  * Gas strategy:
- * - 'self-funded': Agent pays gas with native POL.
+ * - 'self-funded': Agent pays gas with native ETH.
  * - 'erc20': Agent pays gas in USDC via ZeroDev's ERC-20 paymaster.
- * - 'auto' (default): Checks POL balance — uses self-funded if >= 0.01 POL,
+ * - 'sponsored': Platform sponsors gas via ZeroDev UltraRelay (ERC-7683).
+ *   30% less gas, 20% lower latency. Requires a gas policy on ZeroDev dashboard.
+ *   Supported on Base Mainnet and Base Sepolia only.
+ * - 'auto' (default): Checks ETH balance — uses self-funded if >= 0.01 ETH,
  *   otherwise falls back to ERC-20 paymaster.
  *
  * Requires peer dependencies:

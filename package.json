@@ -27,7 +27,8 @@
     "@zerodev/ecdsa-validator": "^5.4.9",
     "@zerodev/permissions": "^5.6.0",
     "@zerodev/sdk": "^5.5.7",
-    "permissionless": "^0.3.4"
+    "permissionless": "^0.3.4",
+    "semver": "^7.6.3"
   },
   "peerDependencies": {
     "@zerodev/ecdsa-validator": "^5.4.9",

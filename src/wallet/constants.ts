@@ -9,21 +9,33 @@ export const BASE_MAINNET_CHAIN_ID = 8453
 
 /** AbbababaEscrowV2 — UUPS upgradeable escrow with simplified AI-only dispute resolution. */
 export const ESCROW_V2_ADDRESSES: Record<number, `0x${string}`> = {
-  [BASE_SEPOLIA_CHAIN_ID]: '0x1Aed68edafC24cc936cFabEcF88012CdF5DA0601',
-  [BASE_MAINNET_CHAIN_ID]: '' as `0x${string}`, // TODO: populated at mainnet launch (v0.7.1)
+  [BASE_SEPOLIA_CHAIN_ID]:    '0x1Aed68edafC24cc936cFabEcF88012CdF5DA0601',
+  [BASE_MAINNET_CHAIN_ID]:    '' as `0x${string}`, // TODO: populated after Base Mainnet deploy
+  [POLYGON_AMOY_CHAIN_ID]:    '' as `0x${string}`, // TODO: populated after Polygon Amoy deploy
+  [POLYGON_MAINNET_CHAIN_ID]: '' as `0x${string}`, // TODO: populated after Polygon Mainnet deploy
 }
 
 /** AbbababaScoreV2 — on-chain agent reputation with simplified +1/-3/-5 scoring (UUPS upgradeable). */
 export const SCORE_V2_ADDRESSES: Record<number, `0x${string}`> = {
-  [BASE_SEPOLIA_CHAIN_ID]: '0x15a43BdE0F17A2163c587905e8E439ae2F1a2536',
-  [BASE_MAINNET_CHAIN_ID]: '' as `0x${string}`, // TODO: populated at mainnet launch (v0.7.1)
+  [BASE_SEPOLIA_CHAIN_ID]:    '0x15a43BdE0F17A2163c587905e8E439ae2F1a2536',
+  [BASE_MAINNET_CHAIN_ID]:    '' as `0x${string}`, // TODO: populated after Base Mainnet deploy
+  [POLYGON_AMOY_CHAIN_ID]:    '' as `0x${string}`, // TODO: populated after Polygon Amoy deploy
+  [POLYGON_MAINNET_CHAIN_ID]: '' as `0x${string}`, // TODO: populated after Polygon Mainnet deploy
 }
 
 /** AbbababaResolverV2 — AI-only instant dispute resolution (UUPS upgradeable). */
 export const RESOLVER_V2_ADDRESSES: Record<number, `0x${string}`> = {
-  [BASE_SEPOLIA_CHAIN_ID]: '0x41Be690C525457e93e13D876289C8De1Cc9d8B7A',
-  [BASE_MAINNET_CHAIN_ID]: '' as `0x${string}`, // TODO: populated at mainnet launch (v0.7.1)
+  [BASE_SEPOLIA_CHAIN_ID]:    '0x41Be690C525457e93e13D876289C8De1Cc9d8B7A',
+  [BASE_MAINNET_CHAIN_ID]:    '' as `0x${string}`, // TODO: populated after Base Mainnet deploy
+  [POLYGON_AMOY_CHAIN_ID]:    '' as `0x${string}`, // TODO: populated after Polygon Amoy deploy
+  [POLYGON_MAINNET_CHAIN_ID]: '' as `0x${string}`, // TODO: populated after Polygon Mainnet deploy
 }
+
+/** Chain IDs for mainnet networks. */
+export const MAINNET_CHAIN_IDS = [BASE_MAINNET_CHAIN_ID, POLYGON_MAINNET_CHAIN_ID] as const
+
+/** Chain IDs for testnet networks. */
+export const TESTNET_CHAIN_IDS = [BASE_SEPOLIA_CHAIN_ID, POLYGON_AMOY_CHAIN_ID] as const
 
 /**
  * Official Circle USDC on Base Sepolia — use this for testnet development.
@@ -79,27 +91,35 @@ export interface TokenInfo {
 }
 
 export const TOKEN_REGISTRY: Record<number, Record<string, TokenInfo>> = {
-  // V2: Removed Polygon Amoy (deprecated)
-  [POLYGON_MAINNET_CHAIN_ID]: {
-    // Tier 1 — Phase 1
-    USDC: { symbol: 'USDC', address: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', decimals: 6, tier: 1 },
-    WPOL: { symbol: 'WPOL', address: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270', decimals: 18, tier: 1 },
-    USDT: { symbol: 'USDT', address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', decimals: 6, tier: 1 },
-    DAI:  { symbol: 'DAI',  address: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063', decimals: 18, tier: 1 },
-    // Tier 2 — Phase 2 (high value)
-    AAVE: { symbol: 'AAVE', address: '0xD6DF932A45C0f255f85145f286eA0b292B21C90B', decimals: 18, tier: 2 },
-    WETH: { symbol: 'WETH', address: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619', decimals: 18, tier: 2 },
-    UNI:  { symbol: 'UNI',  address: '0xb33EaAd8d922B1083446DC23f610c2567fB5180f', decimals: 18, tier: 2 },
-    // Tier 3 — Future (ecosystem)
-    WBTC: { symbol: 'WBTC', address: '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6', decimals: 8, tier: 3 },
-  },
   [BASE_SEPOLIA_CHAIN_ID]: {
-    // Official Circle USDC on Base Sepolia
+    // Tier 1 — Official Circle USDC on Base Sepolia
     USDC: { symbol: 'USDC', address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', decimals: 6, tier: 1 },
   },
   [BASE_MAINNET_CHAIN_ID]: {
-    // Official Circle USDC on Base
-    USDC: { symbol: 'USDC', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6, tier: 1 },
+    // Tier 1 — whitelisted at deploy time
+    USDC:  { symbol: 'USDC',  address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6,  tier: 1 },
+    WETH:  { symbol: 'WETH',  address: '0x4200000000000000000000000000000000000006', decimals: 18, tier: 1 },
+    USDT:  { symbol: 'USDT',  address: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2', decimals: 6,  tier: 1 },
+    DAI:   { symbol: 'DAI',   address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', decimals: 18, tier: 1 },
+    // Tier 2 — added post-launch via setup-tokens.js
+    cbBTC: { symbol: 'cbBTC', address: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf', decimals: 8,  tier: 2 },
+    AERO:  { symbol: 'AERO',  address: '0x940181a94A35A4569E4529A3CDfB74e38FD98631', decimals: 18, tier: 2 },
+  },
+  [POLYGON_AMOY_CHAIN_ID]: {
+    // Tier 1 — Polygon Amoy testnet USDC
+    USDC: { symbol: 'USDC', address: '0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582', decimals: 6, tier: 1 },
+  },
+  [POLYGON_MAINNET_CHAIN_ID]: {
+    // Tier 1 — whitelisted at deploy time
+    USDC: { symbol: 'USDC', address: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', decimals: 6,  tier: 1 },
+    WPOL: { symbol: 'WPOL', address: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270', decimals: 18, tier: 1 },
+    USDT: { symbol: 'USDT', address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', decimals: 6,  tier: 1 },
+    DAI:  { symbol: 'DAI',  address: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063', decimals: 18, tier: 1 },
+    // Tier 2 — added post-launch via setup-tokens.js
+    AAVE: { symbol: 'AAVE', address: '0xD6DF932A45C0f255f85145f286eA0b292B21C90B', decimals: 18, tier: 2 },
+    WETH: { symbol: 'WETH', address: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619', decimals: 18, tier: 2 },
+    UNI:  { symbol: 'UNI',  address: '0xb33EaAd8d922B1083446DC23f610c2567fB5180f', decimals: 18, tier: 2 },
+    WBTC: { symbol: 'WBTC', address: '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6', decimals: 8,  tier: 3 },
   },
 }
 

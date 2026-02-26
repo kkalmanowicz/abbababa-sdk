@@ -309,7 +309,7 @@ export async function useSessionKey(
 
   // 3. Resolve gas strategy
   const strategy = config.gasStrategy ?? 'auto'
-  let resolvedStrategy: 'self-funded' | 'erc20'
+  let resolvedStrategy: 'self-funded' | 'erc20' | 'sponsored'
   if (strategy === 'auto') {
     const balance = await publicClient.getBalance({
       address: sessionKeyAccount.address as Address,
@@ -403,7 +403,7 @@ export async function revokeSessionKey(
 
   // 5. Resolve gas strategy
   const strategy = config.gasStrategy ?? 'auto'
-  let resolvedStrategy: 'self-funded' | 'erc20'
+  let resolvedStrategy: 'self-funded' | 'erc20' | 'sponsored'
   if (strategy === 'auto') {
     const balance = await publicClient.getBalance({
       address: sudoAccount.address as Address,

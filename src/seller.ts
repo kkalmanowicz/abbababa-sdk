@@ -20,7 +20,7 @@ export class SellerAgent {
   private running = false
   private walletAddress: string | null = null
   private kernelClient: unknown = null
-  private resolvedGasStrategy: 'self-funded' | 'erc20' | null = null
+  private resolvedGasStrategy: 'self-funded' | 'erc20' | 'sponsored' | null = null
   private _crypto: AgentCrypto | null = null
 
   constructor(config: AbbabaConfig) {
@@ -254,7 +254,7 @@ export class SellerAgent {
   }
 
   /** Returns the resolved gas strategy after initWallet() or initWithSessionKey(). */
-  getGasStrategy(): 'self-funded' | 'erc20' | null {
+  getGasStrategy(): 'self-funded' | 'erc20' | 'sponsored' | null {
     return this.resolvedGasStrategy
   }
 

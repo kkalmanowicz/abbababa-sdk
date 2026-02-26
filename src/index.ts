@@ -131,6 +131,8 @@ export {
   MAINNET_GRADUATION_SCORE,
   TESTNET_USDC_ADDRESS,
   TOKEN_REGISTRY,
+  MAINNET_CHAIN_IDS,
+  TESTNET_CHAIN_IDS,
   getToken,
   getTokensByTier,
   isTokenSupported,

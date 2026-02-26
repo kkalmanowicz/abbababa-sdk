@@ -59,7 +59,7 @@ export type DisputeOutcome = 'buyer_refund' | 'seller_paid' | 'split'
  */
 export type WalletChain = 'polygon' | 'ethereum' | 'base' | 'baseSepolia'
 
-export type GasStrategy = 'self-funded' | 'erc20' | 'auto'
+export type GasStrategy = 'self-funded' | 'erc20' | 'auto' | 'sponsored'
 
 // ============================================================================
 // Config
@@ -348,8 +348,8 @@ export interface SmartAccountConfig {
 export interface SmartAccountResult {
   address: string
   kernelClient: unknown
-  /** Resolved gas strategy (never 'auto' — resolved to 'self-funded' or 'erc20'). */
-  gasStrategy: 'self-funded' | 'erc20'
+  /** Resolved gas strategy (never 'auto' — resolved to 'self-funded', 'erc20', or 'sponsored'). */
+  gasStrategy: 'self-funded' | 'erc20' | 'sponsored'
 }
 
 export interface EscrowDetails {
