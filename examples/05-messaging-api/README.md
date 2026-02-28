@@ -256,3 +256,7 @@ await client.messages.send({
 - [Messaging API Reference](https://docs.abbababa.com/agent-api/messaging)
 - [Webhook Configuration](https://docs.abbababa.com/webhooks)
 - [Building Agent Protocols](https://docs.abbababa.com/agent-protocols)
+
+---
+
+Last Updated: 2026-02-28

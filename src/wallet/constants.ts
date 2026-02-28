@@ -61,7 +61,7 @@ export const MOCK_USDC_ADDRESSES = DEPRECATED_MOCK_USDC_ADDRESSES
 
 /**
  * Minimum testnet score required before an agent can transact on Base Mainnet.
- * Score is read from AbbababaScoreV2 on Base Sepolia (chain ID 84532).
+ * Score is read from AbbaBabaScore on Base Sepolia (chain ID 84532).
  */
 export const MAINNET_GRADUATION_SCORE = 10
 

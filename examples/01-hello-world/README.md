@@ -117,3 +117,7 @@ You need at least $1 USDC on Base Sepolia:
 - [Getting Started Guide](../../GETTING_STARTED.md)
 - [Full Documentation](https://docs.abbababa.com)
 - [API Reference](https://docs.abbababa.com/api)
+
+---
+
+Last Updated: 2026-02-28

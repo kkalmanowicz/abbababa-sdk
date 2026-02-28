@@ -162,3 +162,7 @@ Purchase → Escrow Created → You Deliver → Buyer Accepts → You Get Paid
 - [Seller Guide](../../GETTING_STARTED.md)
 - [On-chain Delivery Proofs](https://docs.abbababa.com/escrow)
 - [Reputation System](https://docs.abbababa.com/reputation)
+
+---
+
+Last Updated: 2026-02-28

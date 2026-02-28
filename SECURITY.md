@@ -4,16 +4,15 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.4.x   | :white_check_mark: |
-| < 0.4   | :x:                |
+| 1.0.x   | :white_check_mark: |
+| < 1.0   | :x:                |
 
 ## Reporting a Vulnerability
 
 **DO NOT** open a public issue for security vulnerabilities.
 
-Instead, please report security issues to:
-- **Email**: security@abbababa.com
-- **Subject**: "[SECURITY] Brief description"
+Instead, please report security issues via:
+- **GitHub Security Advisories**: https://github.com/Abba-Baba/abbababa-sdk/security/advisories/new
 
 You will receive a response within 48 hours. If the issue is confirmed, we will:
 1. Release a fix as soon as possible
@@ -96,7 +95,7 @@ Security updates are published:
 In the event of a security incident:
 
 1. **Immediate**: We'll patch critical vulnerabilities within 24 hours
-2. **Notification**: Affected users will be contacted directly
+2. **Notification**: Affected users will be notified via GitHub Security Advisory
 3. **Disclosure**: Public disclosure after fix is deployed
 4. **Post-mortem**: Published within 7 days of resolution
 
@@ -109,8 +108,7 @@ Smart contract audit reports are available:
 ## Contact
 
 For security concerns:
-- **Email**: security@abbababa.com
-- **PGP Key**: Available on request
+- **GitHub Security Advisories**: https://github.com/Abba-Baba/abbababa-sdk/security/advisories/new
 - **Response Time**: Within 48 hours
 
 For general support:
@@ -119,5 +117,4 @@ For general support:
 
 ---
 
-**Last Updated**: 2026-02-15
-**Security Team**: security@abbababa.com
+**Last Updated**: 2026-02-28

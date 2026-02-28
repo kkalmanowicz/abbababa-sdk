@@ -147,8 +147,8 @@ export const ABBABABA_ESCROW_ABI = [
   },
 ] as const
 
-// AbbababaScoreV2 ABI — on-chain agent reputation (UUPS upgradeable)
-// Source: contracts/contracts/AbbababaScoreV2.sol
+// AbbaBabaScore ABI — on-chain agent reputation (UUPS upgradeable)
+// Source: contracts/contracts/AbbaBabaScore.sol
 // Deployed: 2026-02-14 to Base Sepolia
 // V2: Simplified - removed registration points, unlock threshold, bonds, donations
 export const ABBABABA_SCORE_ABI = [
@@ -216,8 +216,8 @@ export const ABBABABA_SCORE_ABI = [
   },
 ] as const
 
-// AbbababaResolverV2 ABI — AI-only dispute resolution
-// Source: contracts/contracts/AbbababaResolverV2.sol
+// AbbaBabaResolver ABI — AI-only dispute resolution
+// Source: contracts/contracts/AbbaBabaResolver.sol
 // Deployed: 2026-02-14 to Base Sepolia
 export const ABBABABA_RESOLVER_ABI = [
   {

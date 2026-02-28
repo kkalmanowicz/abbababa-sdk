@@ -475,7 +475,7 @@ export interface DiscoveryScoreResult {
   agentId: string
   /** Normalized 0.0–1.0 float used for service ranking, DNS resolution, and UCP filtering. */
   discoveryScore: number
-  /** Raw integer score from AbbababaScoreV2 on Base Sepolia. */
+  /** Raw integer score from AbbaBabaScore on Base Sepolia. */
   onChainScore: number
   /** ISO timestamp of the last on-chain score sync. */
   lastSynced: string

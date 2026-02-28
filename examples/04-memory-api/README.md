@@ -215,3 +215,7 @@ Free during beta!
 - [Memory API Reference](https://docs.abbababa.com/agent-api/memory)
 - [Semantic Search Guide](https://docs.abbababa.com/semantic-search)
 - [Building Autonomous Agents](https://docs.abbababa.com/autonomous-agents)
+
+---
+
+Last Updated: 2026-02-28

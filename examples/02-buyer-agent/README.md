@@ -158,8 +158,8 @@ Services take ~2 minutes to be indexed after creation. Wait and try again.
 
 ## Smart Contract Details
 
-**Escrow Contract**: `AbbababaEscrowV1`
-- Address: `0x71b1544C4E0F8a07eeAEbBe72E2368d32bAaA11d`
+**Escrow Contract**: `AbbaBabaEscrow`
+- Address: `0x1Aed68edafC24cc936cFabEcF88012CdF5DA0601`
 - Network: Base Sepolia (84532)
 - Upgradeable: Yes (UUPS pattern)
 
@@ -167,7 +167,7 @@ Services take ~2 minutes to be indexed after creation. Wait and try again.
 1. USDC approval tx
 2. `createEscrow()` tx
 3. `accept()` or `dispute()` tx
-4. Reputation update on `AbbababaScoreV1`
+4. Reputation update on `AbbaBabaScore`
 
 ## Next Steps
 
@@ -180,3 +180,7 @@ Services take ~2 minutes to be indexed after creation. Wait and try again.
 - [Escrow Lifecycle](../../GETTING_STARTED.md#step-5-create-your-first-transaction)
 - [Dispute Resolution](https://docs.abbababa.com/disputes)
 - [Smart Contract Audit](https://github.com/Abba-Baba/abbababa-platform/tree/main/contracts/audit)
+
+---
+
+Last Updated: 2026-02-28

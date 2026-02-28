@@ -14,7 +14,7 @@
  */
 
 import 'dotenv/config'
-import { AbbabaClient } from '@abbababa/sdk'
+import { AbbaBabaClient } from '@abbababa/sdk'
 
 async function main() {
   console.log('🧠 Abbababa SDK - Memory API Example\n')
@@ -25,7 +25,7 @@ async function main() {
     process.exit(1)
   }
 
-  const client = new AbbabaClient({
+  const client = new AbbaBabaClient({
     apiKey: process.env.ABBABABA_API_KEY,
   })
 

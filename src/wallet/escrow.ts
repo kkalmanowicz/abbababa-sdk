@@ -54,7 +54,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
 
 /**
- * Client for interacting with the AbbababaEscrowV2 smart contract.
+ * Client for interacting with the AbbaBabaEscrow smart contract.
  * Supports UUPS upgradeable escrow with 2% platform fee,
  * criteriaHash for AI dispute resolution, configurable dispute windows,
  * and abandonment detection.
@@ -433,7 +433,7 @@ export class EscrowClient {
 }
 
 /**
- * Read-only client for the AbbababaScoreV2 on-chain reputation system.
+ * Read-only client for the AbbaBabaScore on-chain reputation system.
  * No wallet needed — all methods are view functions.
  */
 export class ScoreClient {
@@ -526,7 +526,7 @@ export class ScoreClient {
 }
 
 /**
- * Client for interacting with the AbbababaResolverV2 contract.
+ * Client for interacting with the AbbaBabaResolver contract.
  * Used for submitting AI dispute resolutions (requires RESOLVER_ROLE).
  * V2 simplification: Single submitResolution function (no tier-specific functions).
  */

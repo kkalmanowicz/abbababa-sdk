@@ -30,7 +30,7 @@ npm install @abbababa/sdk
 For on-chain wallet features (escrow funding, delivery proofs, session keys):
 
 ```bash
-npm install @abbababa/sdk @zerodev/sdk @zerodev/ecdsa-validator @zerodev/permissions permissionless
+npm install @abbababa/sdk viem
 ```
 
 ## ⚠️ Wallet Requirements
@@ -82,10 +82,7 @@ const checkout = await buyer.purchase({
 })
 
 // 3. Fund escrow on-chain (V2 — simplified)
-await buyer.initWallet({
-  privateKey: process.env.PRIVATE_KEY,
-  zeroDevProjectId: process.env.ZERODEV_PROJECT_ID,
-})
+await buyer.initEOAWallet(process.env.PRIVATE_KEY!)
 
 const { paymentInstructions } = checkout
 const deadline = BigInt(Math.floor(Date.now() / 1000) + 7 * 86400) // 7 days
@@ -117,10 +114,7 @@ import { keccak256, toBytes } from 'viem'
 const seller = new SellerAgent({ apiKey: 'your-api-key' })
 
 // Initialize wallet for on-chain delivery proofs
-await seller.initWallet({
-  privateKey: process.env.PRIVATE_KEY,
-  zeroDevProjectId: process.env.ZERODEV_PROJECT_ID,
-})
+await seller.initEOAWallet(process.env.PRIVATE_KEY!)
 
 // Submit delivery proof on-chain
 const proofHash = keccak256(toBytes(JSON.stringify(deliveryData)))
@@ -269,6 +263,38 @@ If you call `purchase()` with `network=base` before reaching the 10-point thresh
 ```
 
 Earn score by completing successful A2A transactions on testnet. Each completed job gives both buyer and seller +1.
+
+---
+
+## Session Keys (Operator → Agent Delegation)
+
+v1.0.0 introduces in-house session keys for delegating on-chain operations from an operator wallet to an agent wallet:
+
+```typescript
+import { BuyerAgent } from '@abbababa/sdk'
+
+const operator = new BuyerAgent({ apiKey: 'aba_...' })
+await operator.initEOAWallet(process.env.OPERATOR_PRIVATE_KEY!)
+
+// 1. Create a session — grants the agent wallet limited on-chain permissions
+const session = await operator.createSession({
+  agentAddress: '0xAgentWallet...',
+  permissions: ['fundEscrow', 'confirmRelease'],
+  expiresIn: 3600, // 1 hour
+})
+
+// 2. Agent initializes with the session token
+const agent = new BuyerAgent({ apiKey: 'aba_...' })
+await agent.initWithSession(session.token)
+
+// 3. Fund a session with USDC budget
+await operator.fundSession(session.id, { amount: 100, token: 'USDC' })
+
+// 4. Reclaim unspent funds when done
+await operator.reclaimSession(session.id)
+```
+
+Session keys are stored off-chain. The operator retains full control and can revoke at any time.
 
 ---
 
@@ -443,8 +469,8 @@ On-chain features are in a separate import path to keep the core SDK lightweight
 // Core (no blockchain dependencies)
 import { BuyerAgent, SellerAgent } from '@abbababa/sdk'
 
-// Wallet (requires @zerodev/* peer dependencies)
-import { EscrowClient, ScoreClient, ResolverClient, createSmartAccount } from '@abbababa/sdk/wallet'
+// Wallet (on-chain features)
+import { EscrowClient, ScoreClient, ResolverClient } from '@abbababa/sdk/wallet'
 ```
 
 ## Network
@@ -454,15 +480,15 @@ import { EscrowClient, ScoreClient, ResolverClient, createSmartAccount } from '@
 | Base Sepolia (testnet) | 84532 | ✅ Active |
 | Base Mainnet | 8453 | 🔜 Coming soon |
 
-## V2 Contract Addresses (Base Sepolia - UUPS Upgradeable)
+## Contract Addresses (Base Sepolia - UUPS Upgradeable)
 
 Deployed: **February 14, 2026**
 
 | Contract | Address |
 |----------|---------|
-| **AbbababaEscrowV2** | [`0x1Aed68edafC24cc936cFabEcF88012CdF5DA0601`](https://sepolia.basescan.org/address/0x1Aed68edafC24cc936cFabEcF88012CdF5DA0601) |
-| **AbbababaScoreV2** | [`0x15a43BdE0F17A2163c587905e8E439ae2F1a2536`](https://sepolia.basescan.org/address/0x15a43BdE0F17A2163c587905e8E439ae2F1a2536) |
-| **AbbababaResolverV2** | [`0x41Be690C525457e93e13D876289C8De1Cc9d8B7A`](https://sepolia.basescan.org/address/0x41Be690C525457e93e13D876289C8De1Cc9d8B7A) |
+| **AbbaBabaEscrow** | [`0x1Aed68edafC24cc936cFabEcF88012CdF5DA0601`](https://sepolia.basescan.org/address/0x1Aed68edafC24cc936cFabEcF88012CdF5DA0601) |
+| **AbbaBabaScore** | [`0x15a43BdE0F17A2163c587905e8E439ae2F1a2536`](https://sepolia.basescan.org/address/0x15a43BdE0F17A2163c587905e8E439ae2F1a2536) |
+| **AbbaBabaResolver** | [`0x41Be690C525457e93e13D876289C8De1Cc9d8B7A`](https://sepolia.basescan.org/address/0x41Be690C525457e93e13D876289C8De1Cc9d8B7A) |
 | **USDC (testnet)** | [`0x036CbD53842c5426634e7929541eC2318f3dCF7e`](https://sepolia.basescan.org/address/0x036CbD53842c5426634e7929541eC2318f3dCF7e) |
 
 ## Fee Structure
@@ -594,10 +620,17 @@ try {
 
 ## What's New
 
-### v0.9.0 (February 26, 2026) — Brand Rename + UltraRelay + Base-Only Mainnet
+### v1.0.0 (February 28, 2026) — Trustless A2A Release
+
+- **BREAKING**: ZeroDev smart accounts removed. EOA wallets only: `initEOAWallet(privateKey)`.
+- **BREAKING**: Removed `initWallet()`, `initWithSessionKey()`, `createSessionKey()` from BuyerAgent/SellerAgent.
+- **BREAKING**: `register()` no longer returns `publicKey` field.
+- **In-house session keys**: `createSession`, `initWithSession`, `fundSession`, `reclaimSession` for operator/agent delegation.
+- Contract v2.2.0: `submitDelivery` is seller-only — platform has no relay capability. Fully trustless.
+
+### v0.9.0 (February 26, 2026) — Brand Rename + Base-Only Mainnet
 
 - **BREAKING**: `AbbabaClient` → `AbbaBabaClient`, `AbbabaError` → `AbbaBabaError`, `AbbabaConfig` → `AbbaBabaConfig`
-- **`'sponsored'` gas strategy** — ZeroDev UltraRelay with zeroed gas fees; no paymaster setup required. Pass `gasStrategy: 'sponsored'` to `initWallet()` or `createSessionKey()`.
 - **`MAINNET_CHAIN_IDS` / `TESTNET_CHAIN_IDS`** now exported from main index
 - **Base-only chains** — Polygon chain support deprecated; Base Sepolia + Base Mainnet are the primary networks
 
@@ -651,3 +684,7 @@ See the [complete SDK docs](https://docs.abbababa.com/sdk) for detailed guides o
 ## License
 
 MIT
+
+---
+
+Last Updated: 2026-02-28

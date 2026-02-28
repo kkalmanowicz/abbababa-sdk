@@ -10,7 +10,7 @@
  */
 
 import 'dotenv/config'
-import { AbbabaClient } from '@abbababa/sdk'
+import { AbbaBabaClient } from '@abbababa/sdk'
 import { createWalletClient, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { baseSepolia } from 'viem/chains'
@@ -111,7 +111,7 @@ Timestamp: ${timestamp}`
   // Step 2: Discover services
   console.log('🔍 Step 2: Discovering services...\n')
 
-  const client = new AbbabaClient({ apiKey })
+  const client = new AbbaBabaClient({ apiKey })
 
   try {
     const services = await client.services.discover({

@@ -65,10 +65,7 @@ async function main() {
   // Step 2: Initialize wallet for on-chain delivery proofs
   console.log('🔐 Step 2: Initializing wallet for delivery proofs...\n')
 
-  await seller.initWallet({
-    privateKey: process.env.PRIVATE_KEY,
-    zeroDevProjectId: process.env.ZERODEV_PROJECT_ID,
-  })
+  await seller.initEOAWallet(process.env.PRIVATE_KEY!)
 
   console.log('✅ Wallet initialized\n')
 
@@ -113,7 +110,10 @@ async function main() {
 
       const proofHash = keccak256(toBytes(JSON.stringify(deliveryData)))
 
-      await seller.submitDelivery(transaction.id, proofHash, deliveryData)
+      // First deliver via API (stores result off-chain)
+      await seller.deliver(transaction.id, deliveryData)
+      // Then submit proof hash on-chain (seller signs directly)
+      await seller.submitDelivery(transaction.id, proofHash)
 
       console.log('✅ Delivery proof submitted!')
       console.log(`Proof hash: ${proofHash}`)

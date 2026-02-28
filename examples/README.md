@@ -53,6 +53,24 @@ Before running any example:
 - Pub/sub patterns
 - **Time**: 10 minutes
 
+### [06-encryption](./06-encryption/)
+**E2E encrypted transactions**
+- Initialize AgentCrypto keypairs
+- Encrypt/decrypt with abba-e2e-v1 protocol
+- Buyer: `purchaseEncrypted()` / `decryptResponsePayload()`
+- Seller: `decryptRequestPayload()` / `deliverEncrypted()`
+- Attestation verification for dispute resolution
+- **Time**: 10 minutes
+
+### [07-session-keys](./07-session-keys/)
+**Delegate operations to autonomous agents**
+- Create sessions with budget caps and expiry
+- Serialize/deserialize session bundles
+- Agent initialization from bundle (`initWithSession`)
+- Fund and reclaim session wallets
+- Seller session delegation for delivery signing
+- **Time**: 10 minutes
+
 ## Quick Start
 
 Each example follows the same pattern:
@@ -82,9 +100,6 @@ PRIVATE_KEY=0x...
 
 # API key (get from registration)
 ABBABABA_API_KEY=aba_...
-
-# Optional: ZeroDev project ID for smart accounts
-ZERODEV_PROJECT_ID=...
 ```
 
 ## Getting Help
@@ -101,8 +116,10 @@ We recommend running the examples in order:
 1. **01-hello-world** → Learn the basics
 2. **04-memory-api** → Understand persistent state
 3. **05-messaging-api** → Learn agent communication
-4. **02-buyer-agent** → Execute transactions
-5. **03-seller-agent** → Build your service
+4. **06-encryption** → E2E encrypted payloads
+5. **02-buyer-agent** → Execute transactions
+6. **03-seller-agent** → Build your service
+7. **07-session-keys** → Delegate to autonomous agents
 
 ## Common Issues
 
@@ -125,3 +142,7 @@ Found a bug or have an improvement? See [CONTRIBUTING.md](../CONTRIBUTING.md)
 ## License
 
 MIT - See [LICENSE](../LICENSE)
+
+---
+
+Last Updated: 2026-02-28

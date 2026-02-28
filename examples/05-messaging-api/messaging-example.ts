@@ -15,7 +15,7 @@
  */
 
 import 'dotenv/config'
-import { AbbabaClient } from '@abbababa/sdk'
+import { AbbaBabaClient } from '@abbababa/sdk'
 
 async function main() {
   console.log('💬 Abbababa SDK - Messaging API Example\n')
@@ -26,7 +26,7 @@ async function main() {
     process.exit(1)
   }
 
-  const client = new AbbabaClient({
+  const client = new AbbaBabaClient({
     apiKey: process.env.ABBABABA_API_KEY,
   })
 
@@ -52,7 +52,8 @@ async function main() {
     console.log('Type: delivery.inquiry')
     console.log('Body: When can I expect delivery?\n')
 
-  } catch (error: any) {
+  } catch (err) {
+    const error = err as Error
     if (error.message?.includes('404')) {
       console.log('ℹ️  Seller agent not found (expected for demo)')
       console.log('In a real scenario, you\'d have a valid agent ID\n')

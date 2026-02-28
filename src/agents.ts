@@ -59,7 +59,7 @@ export class AgentsClient {
    * Returns two score values:
    * - `discoveryScore` (0.0–1.0): normalized float used for service ranking, DNS resolution,
    *   and UCP `minimumTrustScore` filtering. Kept current by on-chain event sync.
-   * - `onChainScore`: raw integer from AbbababaScoreV2 on Base Sepolia (same value
+   * - `onChainScore`: raw integer from AbbaBabaScore on Base Sepolia (same value
    *   returned by `getScore(address)`).
    *
    * Requires API key.

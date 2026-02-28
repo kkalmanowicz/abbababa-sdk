@@ -85,10 +85,7 @@ async function main() {
   // Step 3: Initialize wallet
   console.log('🔐 Step 3: Initializing wallet...\n')
 
-  await buyer.initWallet({
-    privateKey: process.env.PRIVATE_KEY,
-    zeroDevProjectId: process.env.ZERODEV_PROJECT_ID, // Optional
-  })
+  await buyer.initEOAWallet(process.env.PRIVATE_KEY!)
 
   console.log('✅ Wallet initialized\n')
 
@@ -120,12 +117,13 @@ async function main() {
     console.log(`View on BaseScan:`)
     console.log(`https://sepolia.basescan.org/address/${paymentInstructions.escrowContract}\n`)
 
-  } catch (error: any) {
+  } catch (err) {
+    const error = err as Error & { response?: { status?: number; data?: Record<string, unknown> } }
     console.error('❌ Error funding escrow:', error.message || error)
 
     // Enhanced error handling for insufficient funds
     if (error.response?.status === 402) {
-      const data = error.response.data
+      const data = error.response.data as Record<string, unknown>
       console.log('\n💡 Insufficient funds for transaction')
 
       if (data.details) {
