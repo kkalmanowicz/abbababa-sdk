@@ -145,9 +145,5 @@ export function isTokenSupported(chainId: number, symbol: string): boolean {
 // ============================================================================
 
 // Minimum native token (ETH) balance for self-funded gas.
-// If balance is below this, 'auto' strategy falls back to ERC-20 paymaster.
-// 0.01 ETH in wei — enough for ~1-10 UserOperations on Base.
+// 0.01 ETH in wei — enough for ~1-10 transactions on Base.
 export const MIN_GAS_BALANCE = 10_000_000_000_000_000n
-
-export const ZERODEV_BUNDLER_URL = 'https://rpc.zerodev.app/api/v3/bundler'
-export const ZERODEV_PAYMASTER_URL = 'https://rpc.zerodev.app/api/v3/paymaster'

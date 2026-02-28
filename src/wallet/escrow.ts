@@ -20,6 +20,11 @@ import {
 } from './constants.js'
 import type { EscrowDetails, AgentStats } from '../types.js'
 
+/** Minimal interface satisfied by viem WalletClient and any compatible EOA wallet. */
+export interface WalletSender {
+  sendTransaction(args: { to: `0x${string}`; data: `0x${string}` }): Promise<`0x${string}`>
+}
+
 /** Dispute resolution outcome */
 export enum DisputeOutcome {
   None = 0,
@@ -53,17 +58,19 @@ const ZERO_BYTES32 = '0x00000000000000000000000000000000000000000000000000000000
  * Supports UUPS upgradeable escrow with 2% platform fee,
  * criteriaHash for AI dispute resolution, configurable dispute windows,
  * and abandonment detection.
- * Uses a ZeroDev Kernel account client for sending UserOperations.
+ *
+ * Accepts a viem WalletClient (EOA — seller pays own gas).
+ * The walletClient must expose a sendTransaction({ to, data }) interface.
  */
 export class EscrowClient {
-  private kernelClient: any
+  private walletClient: WalletSender
   private chainId: number
   private escrowAddress: Address
   private tokenAddress: Address
   private tokenDecimals: number
 
-  constructor(kernelClient: unknown, token?: TokenInfo, chainId = BASE_SEPOLIA_CHAIN_ID) {
-    this.kernelClient = kernelClient
+  constructor(walletClient: WalletSender, token?: TokenInfo, chainId = BASE_SEPOLIA_CHAIN_ID) {
+    this.walletClient = walletClient
     this.chainId = chainId
 
     // Resolve token (default USDC)
@@ -101,7 +108,7 @@ export class EscrowClient {
       args: [this.escrowAddress, amount],
     })
 
-    const txHash = await this.kernelClient.sendTransaction({
+    const txHash = await this.walletClient.sendTransaction({
       to: this.tokenAddress,
       data,
     })
@@ -147,7 +154,7 @@ export class EscrowClient {
       args: [escrowId, sellerAddress as Address, amount, this.tokenAddress, deadline, disputeWindow, abandonmentGrace, criteriaHash],
     })
 
-    const txHash = await this.kernelClient.sendTransaction({
+    const txHash = await this.walletClient.sendTransaction({
       to: this.escrowAddress,
       data,
     })
@@ -167,7 +174,7 @@ export class EscrowClient {
       args: [escrowId, proofHash],
     })
 
-    const txHash = await this.kernelClient.sendTransaction({
+    const txHash = await this.walletClient.sendTransaction({
       to: this.escrowAddress,
       data,
     })
@@ -187,7 +194,7 @@ export class EscrowClient {
       args: [escrowId],
     })
 
-    const txHash = await this.kernelClient.sendTransaction({
+    const txHash = await this.walletClient.sendTransaction({
       to: this.escrowAddress,
       data,
     })
@@ -208,7 +215,7 @@ export class EscrowClient {
       args: [escrowId],
     })
 
-    const txHash = await this.kernelClient.sendTransaction({
+    const txHash = await this.walletClient.sendTransaction({
       to: this.escrowAddress,
       data,
     })
@@ -228,7 +235,7 @@ export class EscrowClient {
       args: [escrowId],
     })
 
-    const txHash = await this.kernelClient.sendTransaction({
+    const txHash = await this.walletClient.sendTransaction({
       to: this.escrowAddress,
       data,
     })
@@ -249,7 +256,7 @@ export class EscrowClient {
       args: [escrowId],
     })
 
-    const txHash = await this.kernelClient.sendTransaction({
+    const txHash = await this.walletClient.sendTransaction({
       to: this.escrowAddress,
       data,
     })
@@ -343,6 +350,63 @@ export class EscrowClient {
     })
 
     return result as boolean
+  }
+
+  /**
+   * Transfer ERC20 tokens from this wallet to a recipient address.
+   * Used to fund a session wallet with USDC before handing off the bundle.
+   *
+   * @param to - Recipient address (e.g. session wallet).
+   * @param amount - Amount in smallest token units (e.g. 100_000000n for 100 USDC with 6 decimals).
+   */
+  async transferToken(to: `0x${string}`, amount: bigint): Promise<string> {
+    const data = encodeFunctionData({
+      abi: ERC20_ABI,
+      functionName: 'transfer',
+      args: [to, amount],
+    })
+
+    return this.walletClient.sendTransaction({
+      to: this.tokenAddress,
+      data,
+    })
+  }
+
+  /**
+   * Sweep all ERC20 tokens from `fromAddress` to `recipient`.
+   * Reads the current balance via a public client, then sends all of it.
+   * Used to reclaim funds from a session wallet after the session expires.
+   *
+   * This method must be called with a walletClient that controls `fromAddress`
+   * (i.e., the session wallet's private key must be in `walletClient`).
+   *
+   * @param fromAddress - Source address (the session wallet).
+   * @param recipient - Destination address (the main wallet).
+   * @returns Transaction hash, or `null` if the balance is zero.
+   */
+  async sweepToken(fromAddress: `0x${string}`, recipient: `0x${string}`): Promise<string | null> {
+    const viemChain = CHAINS[this.chainId] ?? baseSepolia
+    const publicClient = createPublicClient({ chain: viemChain, transport: http() })
+
+    const balance = await publicClient.readContract({
+      address: this.tokenAddress,
+      abi: ERC20_ABI,
+      functionName: 'balanceOf',
+      args: [fromAddress],
+    }) as bigint
+
+    if (balance === 0n) return null
+
+    const data = encodeFunctionData({
+      abi: ERC20_ABI,
+      functionName: 'transfer',
+      args: [recipient, balance],
+    })
+
+    return this.walletClient.sendTransaction({
+      to: this.tokenAddress,
+      data,
+    })
   }
 
   /**
@@ -467,12 +531,12 @@ export class ScoreClient {
  * V2 simplification: Single submitResolution function (no tier-specific functions).
  */
 export class ResolverClient {
-  private kernelClient: any
+  private walletClient: WalletSender
   private chainId: number
   private resolverAddress: Address
 
-  constructor(kernelClient: unknown, chainId = BASE_SEPOLIA_CHAIN_ID) {
-    this.kernelClient = kernelClient
+  constructor(walletClient: WalletSender, chainId = BASE_SEPOLIA_CHAIN_ID) {
+    this.walletClient = walletClient
     this.chainId = chainId
 
     const addr = RESOLVER_V2_ADDRESSES[chainId]
@@ -499,7 +563,7 @@ export class ResolverClient {
       args: [escrowId, outcome, BigInt(buyerPercent), BigInt(sellerPercent), reasoning],
     })
 
-    const txHash = await this.kernelClient.sendTransaction({
+    const txHash = await this.walletClient.sendTransaction({
       to: this.resolverAddress,
       data,
     })

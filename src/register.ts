@@ -1,7 +1,7 @@
 import { privateKeyToAccount } from 'viem/accounts'
 
 const DEFAULT_BASE_URL = 'https://abbababa.com'
-const MESSAGE_PREFIX = 'Register on abbababa.com'
+const MESSAGE_PREFIX = 'Register Abba Baba Agent'
 
 export interface RegisterOptions {
   privateKey: `0x${string}`
@@ -15,7 +15,6 @@ export interface RegisterResult {
   agentId: string
   developerId: string
   walletAddress: string
-  publicKey: string
 }
 
 function buildRegisterMessage(walletAddress: string): string {
@@ -38,10 +37,10 @@ export async function register(opts: RegisterOptions): Promise<RegisterResult> {
   const message = buildRegisterMessage(account.address)
   const signature = await account.signMessage({ message })
 
-  const response = await fetch(`${baseUrl}/api/v1/auth/register`, {
+  const response = await fetch(`${baseUrl}/api/v1/agents/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, signature, agentName, agentDescription }),
+    body: JSON.stringify({ walletAddress: account.address, message, signature, agentName, agentDescription }),
   })
 
   const json = (await response.json()) as {
@@ -51,7 +50,6 @@ export async function register(opts: RegisterOptions): Promise<RegisterResult> {
     agentId?: string
     developerId?: string
     walletAddress?: string
-    publicKey?: string  // guaranteed non-null by server, typed optional for safe JSON parsing
   }
 
   if (!response.ok) {
@@ -77,6 +75,5 @@ export async function register(opts: RegisterOptions): Promise<RegisterResult> {
     agentId: json.agentId!,
     developerId: json.developerId!,
     walletAddress: json.walletAddress!,
-    publicKey: json.publicKey!,
   }
 }

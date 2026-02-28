@@ -1,6 +1,6 @@
-// AbbababaEscrowV2 ABI — UUPS upgradeable escrow with 2% platform fee
-// Source: contracts/contracts/AbbababaEscrowV2.sol
-// Deployed: 2026-02-14 to Base Sepolia
+// AbbaBabaEscrow ABI — UUPS upgradeable escrow with 2% platform fee (v2.2.0)
+// Source: contracts/contracts/AbbaBabaEscrow.sol
+// Deployed: 2026-02-14 to Base Sepolia (proxy: 0x1Aed68edafC24cc936cFabEcF88012CdF5DA0601, impl v2.2.0: 0xe5A4e3EbaE1878b860cC440744442D5718Beb014)
 export const ABBABABA_ESCROW_ABI = [
   {
     name: 'PLATFORM_FEE_BPS',
@@ -249,7 +249,7 @@ export const ABBABABA_RESOLVER_ABI = [
   },
 ] as const
 
-// Standard ERC20 ABI - approve, balanceOf, allowance, mint (testnet only)
+// Standard ERC20 ABI - approve, transfer, balanceOf, allowance, mint (testnet only)
 export const ERC20_ABI = [
   {
     name: 'approve',
@@ -257,6 +257,16 @@ export const ERC20_ABI = [
     stateMutability: 'nonpayable',
     inputs: [
       { name: 'spender', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+  {
+    name: 'transfer',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'to', type: 'address' },
       { name: 'amount', type: 'uint256' },
     ],
     outputs: [{ name: '', type: 'bool' }],

@@ -97,23 +97,18 @@ export type {
   WebhookHandler,
 
   // Wallet
-  GasStrategy,
-  SmartAccountConfig,
-  SmartAccountResult,
   EscrowDetails,
   AgentStats,
-
-  // Session Keys
-  SessionKeyConfig,
-  SessionKeyResult,
-  UseSessionKeyConfig,
-  RevokeSessionKeyConfig,
 
   // Polling
   PollOptions,
 
   // x402
   X402PaymentRequirements,
+
+  // Session keys
+  CreateSessionOpts,
+  SessionInfo,
 } from './types.js'
 
 // V2 on-chain enums
@@ -138,6 +133,9 @@ export {
   isTokenSupported,
 } from './wallet/constants.js'
 export type { TokenInfo } from './wallet/constants.js'
+export { createEOAWallet } from './wallet/eoa-wallet.js'
+export { generateSessionWallet, generateE2EKeypair, SessionBundle } from './wallet/session-key.js'
+export type { SessionBundlePayload } from './wallet/session-key.js'
 
 // Registration types
 export type { RegisterOptions, RegisterResult } from './register.js'

@@ -1,6 +1,7 @@
 import { AbbaBabaClient } from './client.js'
 import { WebhookServer } from './webhook.js'
 import { AgentCrypto, verifyAttestation } from './crypto.js'
+import type { WalletSender } from './wallet/escrow.js'
 import type {
   AbbaBabaConfig,
   Service,
@@ -10,22 +11,20 @@ import type {
   Transaction,
   ApiResponse,
   WebhookHandler,
-  SmartAccountConfig,
-  SessionKeyConfig,
-  SessionKeyResult,
-  UseSessionKeyConfig,
   AgentStats,
   E2EDecryptResult,
   EncryptedEnvelope,
   DeliveryAttestation,
+  CreateSessionOpts,
+  SessionInfo,
 } from './types.js'
 
 export class BuyerAgent {
   public readonly client: AbbaBabaClient
   private webhookServer: WebhookServer | null = null
   private walletAddress: string | null = null
-  private kernelClient: unknown = null
-  private resolvedGasStrategy: 'self-funded' | 'erc20' | 'sponsored' | null = null
+  private walletClient: WalletSender | null = null
+  private resolvedGasStrategy: 'self-funded' | null = null
   private _crypto: AgentCrypto | null = null
 
   constructor(config: AbbaBabaConfig) {
@@ -92,21 +91,28 @@ export class BuyerAgent {
   }
 
   /**
-   * Initialize a ZeroDev smart account for on-chain payments.
-   * Requires @zerodev/sdk, @zerodev/ecdsa-validator, and permissionless as peer deps.
+   * Initialize a plain EOA wallet for on-chain payments.
+   * The agent pays their own gas (~$0.02/flow on Base Sepolia).
+   * No ZeroDev or smart account required.
+   *
+   * @param privateKey - 32-byte hex private key (0x-prefixed)
+   * @param chain      - Target chain (default: 'baseSepolia')
    */
-  async initWallet(config: SmartAccountConfig): Promise<string> {
-    const { createSmartAccount } = await import('./wallet/smart-account.js')
-    const result = await createSmartAccount(config)
+  async initEOAWallet(
+    privateKey: string,
+    chain?: 'baseSepolia' | 'base' | 'polygon' | 'polygonAmoy'
+  ): Promise<string> {
+    const { createEOAWallet } = await import('./wallet/eoa-wallet.js')
+    const result = await createEOAWallet({ privateKey, chain })
     this.walletAddress = result.address
-    this.kernelClient = result.kernelClient
-    this.resolvedGasStrategy = result.gasStrategy
+    this.walletClient = result.walletClient
+    this.resolvedGasStrategy = 'self-funded'
     return result.address
   }
 
   /**
    * Fund an on-chain escrow for a transaction (V2 — includes deadline).
-   * Requires initWallet() to have been called first.
+   * Requires initEOAWallet() to have been called first.
    * @param tokenSymbol - Settlement token symbol (default: 'USDC').
    * @param deadline - Unix timestamp after which the seller must deliver.
    * Returns the on-chain transaction hash.
@@ -118,13 +124,13 @@ export class BuyerAgent {
     tokenSymbol: string = 'USDC',
     deadline: bigint = BigInt(Math.floor(Date.now() / 1000) + 7 * 86400)
   ): Promise<string> {
-    if (!this.kernelClient) {
-      throw new Error('Wallet not initialized. Call initWallet() first.')
+    if (!this.walletClient) {
+      throw new Error('Wallet not initialized. Call initEOAWallet() first.')
     }
     const { EscrowClient } = await import('./wallet/escrow.js')
     const { getToken, BASE_SEPOLIA_CHAIN_ID } = await import('./wallet/constants.js')
     const token = getToken(BASE_SEPOLIA_CHAIN_ID, tokenSymbol)
-    const escrow = new EscrowClient(this.kernelClient, token)
+    const escrow = new EscrowClient(this.walletClient, token)
     await escrow.approveToken(amount)
     return escrow.fundEscrow(transactionId, sellerAddress, amount, deadline)
   }
@@ -137,7 +143,7 @@ export class BuyerAgent {
    *   3. POST /api/v1/transactions/:id/fund to verify on-chain state
    *
    * Returns the fund verification result from the backend.
-   * Requires initWallet() or initWithSessionKey() to have been called first.
+   * Requires initEOAWallet() to have been called first.
    */
   async fundAndVerify(
     transactionId: string,
@@ -157,9 +163,9 @@ export class BuyerAgent {
   async confirmAndRelease(transactionId: string): Promise<void> {
     await this.client.transactions.confirm(transactionId)
 
-    if (this.kernelClient) {
+    if (this.walletClient) {
       const { EscrowClient } = await import('./wallet/escrow.js')
-      const escrow = new EscrowClient(this.kernelClient)
+      const escrow = new EscrowClient(this.walletClient)
       await escrow.acceptDelivery(transactionId)
     }
   }
@@ -169,11 +175,11 @@ export class BuyerAgent {
    * Returns the on-chain transaction hash.
    */
   async disputeOnChain(transactionId: string): Promise<string> {
-    if (!this.kernelClient) {
-      throw new Error('Wallet not initialized. Call initWallet() first.')
+    if (!this.walletClient) {
+      throw new Error('Wallet not initialized. Call initEOAWallet() first.')
     }
     const { EscrowClient } = await import('./wallet/escrow.js')
-    const escrow = new EscrowClient(this.kernelClient)
+    const escrow = new EscrowClient(this.walletClient)
     return escrow.disputeEscrow(transactionId)
   }
 
@@ -182,11 +188,11 @@ export class BuyerAgent {
    * Returns the on-chain transaction hash.
    */
   async claimAbandoned(transactionId: string): Promise<string> {
-    if (!this.kernelClient) {
-      throw new Error('Wallet not initialized. Call initWallet() first.')
+    if (!this.walletClient) {
+      throw new Error('Wallet not initialized. Call initEOAWallet() first.')
     }
     const { EscrowClient } = await import('./wallet/escrow.js')
-    const escrow = new EscrowClient(this.kernelClient)
+    const escrow = new EscrowClient(this.walletClient)
     return escrow.claimAbandoned(transactionId)
   }
 
@@ -232,45 +238,178 @@ export class BuyerAgent {
   }
 
   /**
-   * Initialize wallet from a serialized session key (agent operation).
-   * No owner private key needed — only the serialized session key string.
-   * The resulting wallet can only perform actions allowed by the session's policies.
-   * All existing methods (fundEscrow, confirmAndRelease) work after this call.
+   * Create a session key bundle for delegation to an autonomous agent.
    *
-   * Requires @zerodev/sdk and @zerodev/permissions as peer deps.
+   * Generates an ephemeral EOA wallet and E2E keypair locally, then registers
+   * the session wallet address with the platform. Returns a `SessionInfo` with
+   * a `serialize()` method to produce the bundle string for the agent.
+   *
+   * After calling `createSession()`:
+   * 1. Fund `session.walletAddress` with USDC (up to `budgetUsdc`) + a small
+   *    ETH gas reserve using `fundSession(session)`.
+   * 2. Serialize: `const bundle = session.serialize()`
+   * 3. Pass `bundle` to the agent process.
+   * 4. Agent calls `agentBuyer.initWithSession(bundle)` — fully operational.
+   *
+   * Requires a valid API key (`this.client`) — does NOT require initEOAWallet().
    */
-  async initWithSessionKey(config: UseSessionKeyConfig): Promise<string> {
-    const { useSessionKey } = await import('./wallet/session-keys.js')
-    const result = await useSessionKey(config)
-    this.walletAddress = result.address
-    this.kernelClient = result.kernelClient
-    this.resolvedGasStrategy = result.gasStrategy
-    return result.address
+  async createSession(opts?: CreateSessionOpts): Promise<SessionInfo & { serialize(): string }> {
+    const { generateSessionWallet, generateE2EKeypair, SessionBundle } = await import('./wallet/session-key.js')
+    const wallet = generateSessionWallet()
+    const e2eKeypair = generateE2EKeypair()
+    const expirySecs = opts?.expiry ?? 3600
+    const expiryTs = Math.floor(Date.now() / 1000) + expirySecs
+
+    const res = await this.client.request<{ sessionId: string; token: string; expiresAt: string }>(
+      'POST',
+      '/api/v1/agents/session',
+      {
+        budgetUsdc: opts?.budgetUsdc ?? null,
+        expiry: expirySecs,
+        allowedServiceIds: opts?.allowedServiceIds ?? [],
+        sessionWallet: wallet.address,
+        e2ePublicKey: e2eKeypair.publicKey,
+      }
+    )
+
+    if (!res.success || !res.data) {
+      throw new Error(res.error ?? 'Failed to create session')
+    }
+
+    const bundlePayload = {
+      token: res.data.token,
+      agentId: '', // agentId is encoded into the session token on the platform side
+      budgetUsdc: opts?.budgetUsdc ?? null,
+      expiry: expiryTs,
+      walletPrivateKey: wallet.privateKey as string,
+      walletAddress: wallet.address,
+      e2ePrivateKey: e2eKeypair.privateKey,
+      e2ePublicKey: e2eKeypair.publicKey,
+    }
+
+    const serialized = SessionBundle.serialize(bundlePayload)
+    const info: SessionInfo = {
+      sessionId: res.data.sessionId,
+      token: res.data.token,
+      agentId: bundlePayload.agentId,
+      budgetUsdc: opts?.budgetUsdc ?? null,
+      expiry: expiryTs,
+      walletAddress: wallet.address,
+      e2ePublicKey: e2eKeypair.publicKey,
+    }
+
+    return { ...info, serialize: () => serialized }
   }
 
   /**
-   * Generate a scoped session key for an agent (owner/developer operation).
-   * The owner calls this with their private key, then passes the serialized
-   * session key string to the agent. The session key is restricted to
-   * V2 escrow operations by default.
+   * Initialize this agent from a serialized session bundle.
    *
-   * This is a static method — it doesn't require an API key or AbbaBabaClient.
+   * Sets the session EOA wallet (for on-chain signing) and E2E crypto keypair
+   * (for `purchaseEncrypted` / `decryptResponsePayload`). The API client already
+   * uses the session token via the constructor `apiKey`.
    *
-   * Requires @zerodev/sdk, @zerodev/ecdsa-validator, and @zerodev/permissions.
+   * Call this instead of `initEOAWallet()` + `initCrypto()` when operating
+   * as a delegated session agent.
+   *
+   * @param serializedBundle - The string from `session.serialize()`.
    */
-  static async createSessionKey(
-    config: SessionKeyConfig
-  ): Promise<SessionKeyResult> {
-    const { generateSessionKey } = await import('./wallet/session-keys.js')
-    return generateSessionKey(config)
+  async initWithSession(serializedBundle: string): Promise<void> {
+    const { SessionBundle } = await import('./wallet/session-key.js')
+    const payload = SessionBundle.deserialize(serializedBundle)
+
+    if (payload.expiry < Math.floor(Date.now() / 1000)) {
+      throw new Error('Session bundle has expired. Request a new session from the operator.')
+    }
+
+    // Initialize EOA wallet from the session private key
+    await this.initEOAWallet(payload.walletPrivateKey)
+
+    // Initialize E2E crypto from the session E2E keypair
+    this.initCrypto(payload.e2ePrivateKey)
+  }
+
+  /**
+   * Fund a session wallet with USDC + a small ETH gas reserve.
+   *
+   * Transfers `session.budgetUsdc` USDC and 0.01 ETH from the main wallet
+   * (which must be initialized via `initEOAWallet()`) to the session EOA address.
+   * This sets the blockchain-enforced hard cap — the agent cannot spend more
+   * than what's in the session wallet regardless of the API soft cap.
+   *
+   * Requires `initEOAWallet()` to have been called with the MAIN wallet first.
+   *
+   * @param session - The SessionInfo returned by `createSession()`.
+   * @param tokenSymbol - Token to transfer (default: 'USDC').
+   * @returns On-chain USDC transfer transaction hash.
+   */
+  async fundSession(
+    session: Pick<SessionInfo, 'walletAddress' | 'budgetUsdc'>,
+    tokenSymbol: string = 'USDC'
+  ): Promise<string> {
+    if (!this.walletClient) {
+      throw new Error('Main wallet not initialized. Call initEOAWallet() with the main private key first.')
+    }
+    if (session.budgetUsdc === null || session.budgetUsdc <= 0) {
+      throw new Error('budgetUsdc must be a positive number to fund a session wallet.')
+    }
+
+    const { EscrowClient } = await import('./wallet/escrow.js')
+    const { getToken, BASE_SEPOLIA_CHAIN_ID } = await import('./wallet/constants.js')
+    const token = getToken(BASE_SEPOLIA_CHAIN_ID, tokenSymbol)
+    if (!token) throw new Error(`Token ${tokenSymbol} not found for chain ${BASE_SEPOLIA_CHAIN_ID}`)
+    const escrow = new EscrowClient(this.walletClient, token)
+
+    // Transfer USDC to session wallet
+    const amountUnits = BigInt(Math.round(session.budgetUsdc * 10 ** token.decimals))
+    return escrow.transferToken(session.walletAddress as `0x${string}`, amountUnits)
+  }
+
+  /**
+   * Reclaim remaining USDC from an expired or exhausted session wallet.
+   *
+   * Reads the current USDC balance of this wallet (the session wallet) and
+   * transfers it to `mainWalletAddress`. Call this after the session expires.
+   *
+   * This must be called on a BuyerAgent initialized with the SESSION private key
+   * (via `initWithSession(bundle)`), not the main wallet:
+   * ```ts
+   * const reclaimer = new BuyerAgent({ apiKey: session.token })
+   * await reclaimer.initWithSession(bundle)
+   * await reclaimer.reclaimSession(MAIN_WALLET_ADDRESS)
+   * ```
+   *
+   * @param mainWalletAddress - Destination address to receive the swept USDC.
+   * @param tokenSymbol - Token to reclaim (default: 'USDC').
+   * @returns On-chain USDC transfer transaction hash, or `null` if balance is zero.
+   */
+  async reclaimSession(
+    mainWalletAddress: string,
+    tokenSymbol: string = 'USDC'
+  ): Promise<string | null> {
+    if (!this.walletClient || !this.walletAddress) {
+      throw new Error(
+        'Session wallet not initialized. Call initWithSession(bundle) on a BuyerAgent ' +
+        'configured with the session token, then call reclaimSession(mainWalletAddress).'
+      )
+    }
+
+    const { EscrowClient } = await import('./wallet/escrow.js')
+    const { getToken, BASE_SEPOLIA_CHAIN_ID } = await import('./wallet/constants.js')
+    const token = getToken(BASE_SEPOLIA_CHAIN_ID, tokenSymbol)
+    const escrow = new EscrowClient(this.walletClient, token)
+
+    return escrow.sweepToken(
+      this.walletAddress as `0x${string}`,
+      mainWalletAddress as `0x${string}`
+    )
   }
 
   getWalletAddress(): string | null {
     return this.walletAddress
   }
 
-  /** Returns the resolved gas strategy after initWallet() or initWithSessionKey(). */
-  getGasStrategy(): 'self-funded' | 'erc20' | 'sponsored' | null {
+  /** Returns the resolved gas strategy after initEOAWallet(). */
+  getGasStrategy(): 'self-funded' | null {
     return this.resolvedGasStrategy
   }
 

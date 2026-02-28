@@ -1,11 +1,4 @@
-export { createSmartAccount, buildKernelClient } from './smart-account.js'
 export { EscrowClient, ScoreClient, ResolverClient, DisputeOutcome, EscrowStatus } from './escrow.js'
-export {
-  generateSessionKey,
-  useSessionKey,
-  revokeSessionKey,
-  buildEscrowPolicies,
-} from './session-keys.js'
 export {
   // V2 contract addresses (UUPS Upgradeable - 2026-02-14)
   ESCROW_V2_ADDRESSES,

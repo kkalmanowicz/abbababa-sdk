@@ -1,5 +1,28 @@
 # @abbababa/sdk Changelog
 
+## [1.0.0] — 2026-02-28 — Trustless A2A Release
+
+### BREAKING CHANGES
+- Removed `BuyerAgent.initWallet()`, `initWithSessionKey()`, `createSessionKey()` — ZeroDev smart accounts removed
+- Removed `SellerAgent.initWallet()`, `initWithSessionKey()` — ZeroDev smart accounts removed
+- Removed types: `GasStrategy`, `SmartAccountConfig`, `SmartAccountResult`, `SessionKeyConfig`,
+  `SessionKeyResult`, `UseSessionKeyConfig`, `RevokeSessionKeyConfig`
+- `BuyerAgent.getGasStrategy()` return narrowed to `'self-funded' | null`
+- `register()` no longer returns `publicKey` field (was always empty string on the server)
+- Removed ZeroDev optional peer dependencies: `@zerodev/sdk`, `@zerodev/ecdsa-validator`,
+  `@zerodev/permissions`, `permissionless`
+
+### ADDED
+- `SellerAgent.initEOAWallet(privateKey, chain?)` — seller initializes EOA wallet for on-chain signing
+- `SellerAgent.submitDelivery(transactionId, proofHash)` — seller signs delivery proof on-chain directly (no platform relay)
+
+### CHANGED
+- Contract v2.2.0: `submitDelivery` is seller-only (`msg.sender == seller`). Platform has no relay capability. Fully trustless.
+- EOA wallets are the only supported wallet type. ZeroDev smart accounts removed entirely.
+- Headless agent registration: `register()` now correctly targets `/api/v1/agents/register` with canonical `Register Abba Baba Agent` message prefix.
+
+---
+
 ## [0.9.0] - 2026-02-26 — Brand Rename + Base Mainnet Prep
 
 ### Breaking Changes

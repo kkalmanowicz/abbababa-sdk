@@ -59,8 +59,6 @@ export type DisputeOutcome = 'buyer_refund' | 'seller_paid' | 'split'
  */
 export type WalletChain = 'polygon' | 'ethereum' | 'base' | 'baseSepolia'
 
-export type GasStrategy = 'self-funded' | 'erc20' | 'auto' | 'sponsored'
-
 // ============================================================================
 // Config
 // ============================================================================
@@ -337,21 +335,6 @@ export type WebhookHandler = (event: WebhookEvent) => Promise<void>
 // Wallet Types
 // ============================================================================
 
-export interface SmartAccountConfig {
-  privateKey: string
-  zeroDevProjectId: string
-  chain?: 'polygon' | 'polygonAmoy' | 'baseSepolia' | 'base'
-  /** Gas payment strategy (default: 'auto'). */
-  gasStrategy?: GasStrategy
-}
-
-export interface SmartAccountResult {
-  address: string
-  kernelClient: unknown
-  /** Resolved gas strategy (never 'auto' — resolved to 'self-funded', 'erc20', or 'sponsored'). */
-  gasStrategy: 'self-funded' | 'erc20' | 'sponsored'
-}
-
 export interface EscrowDetails {
   token: string
   buyer: string
@@ -595,6 +578,47 @@ export interface E2EDecryptResult {
 }
 
 // ============================================================================
+// Session Key Types
+// ============================================================================
+
+export interface CreateSessionOpts {
+  /** Soft USDC spending cap — API-enforced. null / omit = unlimited. */
+  budgetUsdc?: number
+  /** Session lifetime in seconds from now (default: 3600). */
+  expiry?: number
+  /** Allowlist of service IDs the session may purchase. [] = all services. */
+  allowedServiceIds?: string[]
+}
+
+/**
+ * Platform-issued session token with all keys populated locally.
+ * Serialize with `serialize()` to get the bundle string to hand off to an agent.
+ *
+ * SECURITY: treat serialize() output like a private key — never log or transmit
+ * it over plaintext. If leaked, an attacker is bounded by the wallet balance + expiry.
+ * The parent agent's main key is NOT exposed.
+ */
+export interface SessionInfo {
+  /** Platform-assigned session record ID. */
+  sessionId: string
+  /** Session credential ("abba_session_..."). Use as apiKey in BuyerAgent config. */
+  token: string
+  /** Parent agent ID. */
+  agentId: string
+  /** Soft USDC budget cap (API-enforced). null = unlimited. */
+  budgetUsdc: number | null
+  /** Session expiry — Unix timestamp seconds. */
+  expiry: number
+  /** Ephemeral EOA address. Fund this before handing off the bundle. */
+  walletAddress: string
+  /**
+   * Compressed secp256k1 public key for E2E encryption (hex, 33 bytes).
+   * Share with sellers so they can encrypt deliveries addressed to this session.
+   */
+  e2ePublicKey: string
+}
+
+// ============================================================================
 // Polling Options
 // ============================================================================
 
@@ -605,49 +629,3 @@ export interface PollOptions {
   statuses?: TransactionStatus[]
 }
 
-// ============================================================================
-// Session Key Types (ERC-7715)
-// ============================================================================
-
-/** Config for generating a scoped session key (owner operation). */
-export interface SessionKeyConfig {
-  ownerPrivateKey: string
-  zeroDevProjectId: string
-  chain?: 'polygon' | 'polygonAmoy' | 'baseSepolia' | 'base'
-  /** Session validity in seconds (default: 3600 = 1 hour) */
-  validitySeconds?: number
-  /** Max gas this session key may spend in wei (default: 10_000_000_000_000_000n = 0.01 ETH) */
-  gasBudgetWei?: bigint
-  /** Override default escrow-scoped policies with custom policies */
-  customPolicies?: unknown[]
-}
-
-/** Result from generating a session key. */
-export interface SessionKeyResult {
-  /** Serialized session key string — pass this to the agent */
-  serializedSessionKey: string
-  /** The session key's EOA address */
-  sessionKeyAddress: string
-  /** The Kernel smart account address */
-  smartAccountAddress: string
-}
-
-/** Config for using a session key (agent operation — no owner key needed). */
-export interface UseSessionKeyConfig {
-  serializedSessionKey: string
-  zeroDevProjectId: string
-  chain?: 'polygon' | 'polygonAmoy' | 'baseSepolia' | 'base'
-  /** Gas payment strategy (default: 'auto'). */
-  gasStrategy?: GasStrategy
-}
-
-/** Config for revoking a session key on-chain (owner operation). */
-export interface RevokeSessionKeyConfig {
-  ownerPrivateKey: string
-  zeroDevProjectId: string
-  /** The serialized session key to reconstruct the permission plugin for revocation */
-  serializedSessionKey: string
-  chain?: 'polygon' | 'polygonAmoy' | 'baseSepolia' | 'base'
-  /** Gas payment strategy (default: 'auto'). */
-  gasStrategy?: GasStrategy
-}

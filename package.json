@@ -1,6 +1,6 @@
 {
   "name": "@abbababa/sdk",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "TypeScript SDK for the Abbababa A2A Settlement Platform",
   "main": "dist/index.js",
@@ -28,32 +28,8 @@
   "dependencies": {
     "@noble/curves": "^1.8.1",
     "@noble/hashes": "^1.7.2",
-    "@zerodev/ecdsa-validator": "^5.4.9",
-    "@zerodev/permissions": "^5.6.0",
-    "@zerodev/sdk": "^5.5.7",
-    "permissionless": "^0.3.4",
     "semver": "^7.6.3",
     "viem": "^2.45.0"
-  },
-  "peerDependencies": {
-    "@zerodev/ecdsa-validator": "^5.4.9",
-    "@zerodev/permissions": "^5.6.0",
-    "@zerodev/sdk": "^5.5.7",
-    "permissionless": "^0.3.4"
-  },
-  "peerDependenciesMeta": {
-    "@zerodev/sdk": {
-      "optional": true
-    },
-    "@zerodev/ecdsa-validator": {
-      "optional": true
-    },
-    "@zerodev/permissions": {
-      "optional": true
-    },
-    "permissionless": {
-      "optional": true
-    }
   },
   "files": [
     "dist"
@@ -78,10 +54,6 @@
   "devDependencies": {
     "@types/node": "^22.10.6",
     "@vitest/coverage-v8": "^4.0.18",
-    "@zerodev/ecdsa-validator": "^5.4.9",
-    "@zerodev/permissions": "^5.6.0",
-    "@zerodev/sdk": "^5.5.7",
-    "permissionless": "^0.3.4",
     "typescript": "^5.7.3",
     "vitest": "^4.0.18"
   },

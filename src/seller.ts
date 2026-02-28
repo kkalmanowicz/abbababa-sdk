@@ -1,4 +1,5 @@
 import { AbbaBabaClient } from './client.js'
+import type { WalletSender } from './wallet/escrow.js'
 import { AgentCrypto, generateAttestation, verifyAttestation } from './crypto.js'
 import type {
   AbbaBabaConfig,
@@ -7,20 +8,18 @@ import type {
   Transaction,
   PollOptions,
   ApiResponse,
-  SmartAccountConfig,
-  UseSessionKeyConfig,
   AgentStats,
   E2EDecryptResult,
   EncryptedEnvelope,
   DeliveryAttestation,
+  SessionInfo,
 } from './types.js'
 
 export class SellerAgent {
   public readonly client: AbbaBabaClient
   private running = false
   private walletAddress: string | null = null
-  private kernelClient: unknown = null
-  private resolvedGasStrategy: 'self-funded' | 'erc20' | 'sponsored' | null = null
+  private walletClient: WalletSender | null = null
   private _crypto: AgentCrypto | null = null
 
   constructor(config: AbbaBabaConfig) {
@@ -73,60 +72,43 @@ export class SellerAgent {
     }
   }
 
+  /**
+   * Initialize a plain EOA wallet for on-chain delivery signing.
+   * The agent pays their own gas (~$0.02/tx on Base Sepolia).
+   *
+   * @param privateKey - 32-byte hex private key (0x-prefixed)
+   * @param chain      - Target chain (default: 'baseSepolia')
+   */
+  async initEOAWallet(
+    privateKey: string,
+    chain?: 'baseSepolia' | 'base' | 'polygon' | 'polygonAmoy'
+  ): Promise<string> {
+    const { createEOAWallet } = await import('./wallet/eoa-wallet.js')
+    const result = await createEOAWallet({ privateKey, chain })
+    this.walletAddress = result.address
+    this.walletClient = result.walletClient
+    return result.address
+  }
+
   /** Deliver results for a transaction via the API. */
   async deliver(transactionId: string, responsePayload: unknown): Promise<ApiResponse<Transaction>> {
     return this.client.transactions.deliver(transactionId, { responsePayload })
   }
 
   /**
-   * Submit delivery proof on-chain (V4) and optionally deliver via the API.
-   * Requires initWallet() or initWithSessionKey() to have been called first.
-   * @param proofHash - keccak256 hash of the delivery proof data.
-   * @param responsePayload - Optional API delivery payload. If provided, also calls the deliver endpoint.
+   * Submit delivery proof on-chain. Seller signs directly — no platform relay.
+   * Call this after deliver() to commit the proof hash to the escrow contract.
+   * Requires initEOAWallet() to have been called first.
+   *
+   * @param proofHash - keccak256 hash of the delivery proof (0x-prefixed)
    */
-  async submitDelivery(
-    transactionId: string,
-    proofHash: `0x${string}`,
-    responsePayload?: unknown
-  ): Promise<string> {
-    if (!this.kernelClient) {
-      throw new Error('Wallet not initialized. Call initWallet() first.')
+  async submitDelivery(transactionId: string, proofHash: `0x${string}`): Promise<string> {
+    if (!this.walletClient) {
+      throw new Error('Wallet not initialized. Call initEOAWallet() first.')
     }
     const { EscrowClient } = await import('./wallet/escrow.js')
-    const escrow = new EscrowClient(this.kernelClient)
-    const txHash = await escrow.submitDelivery(transactionId, proofHash)
-
-    if (responsePayload !== undefined) {
-      await this.client.transactions.deliver(transactionId, { responsePayload })
-    }
-
-    return txHash
-  }
-
-  /**
-   * Initialize a ZeroDev smart account for on-chain operations.
-   * Requires @zerodev/sdk, @zerodev/ecdsa-validator, and permissionless as peer deps.
-   */
-  async initWallet(config: SmartAccountConfig): Promise<string> {
-    const { createSmartAccount } = await import('./wallet/smart-account.js')
-    const result = await createSmartAccount(config)
-    this.walletAddress = result.address
-    this.kernelClient = result.kernelClient
-    this.resolvedGasStrategy = result.gasStrategy
-    return result.address
-  }
-
-  /**
-   * Initialize wallet from a serialized session key (agent operation).
-   * No owner private key needed — only the serialized session key string.
-   */
-  async initWithSessionKey(config: UseSessionKeyConfig): Promise<string> {
-    const { useSessionKey } = await import('./wallet/session-keys.js')
-    const result = await useSessionKey(config)
-    this.walletAddress = result.address
-    this.kernelClient = result.kernelClient
-    this.resolvedGasStrategy = result.gasStrategy
-    return result.address
+    const escrow = new EscrowClient(this.walletClient)
+    return escrow.submitDelivery(transactionId, proofHash)
   }
 
   /**
@@ -136,7 +118,7 @@ export class SellerAgent {
   async getAgentScore(agentAddress?: string): Promise<AgentStats> {
     const address = agentAddress ?? this.walletAddress
     if (!address) {
-      throw new Error('No address. Provide agentAddress or call initWallet() first.')
+      throw new Error('No address. Provide agentAddress or call initEOAWallet() first.')
     }
     const { ScoreClient } = await import('./wallet/escrow.js')
     const score = new ScoreClient()
@@ -244,6 +226,70 @@ export class SellerAgent {
     })
   }
 
+  /**
+   * Create a session bundle for a seller — purely local, no platform API call.
+   *
+   * Generates an ephemeral EOA wallet and E2E keypair for use in a delegated
+   * seller agent process. No budget or allowedServices concept for sellers.
+   *
+   * Seller sessions are used to delegate delivery signing to an untrusted
+   * process without exposing the main seller private key.
+   *
+   * @param opts.expiry - Session lifetime in seconds (default: 3600).
+   * @returns SessionInfo with a `serialize()` method for the bundle string.
+   */
+  async createSession(
+    opts?: { expiry?: number }
+  ): Promise<Pick<SessionInfo, 'expiry' | 'walletAddress' | 'e2ePublicKey'> & { serialize(): string }> {
+    const { generateSessionWallet, generateE2EKeypair, SessionBundle } = await import('./wallet/session-key.js')
+    const wallet = generateSessionWallet()
+    const e2eKeypair = generateE2EKeypair()
+    const expirySecs = opts?.expiry ?? 3600
+    const expiryTs = Math.floor(Date.now() / 1000) + expirySecs
+
+    const bundlePayload = {
+      token: '',        // seller sessions don't have a platform token
+      agentId: '',
+      budgetUsdc: null,
+      expiry: expiryTs,
+      walletPrivateKey: wallet.privateKey as string,
+      walletAddress: wallet.address,
+      e2ePrivateKey: e2eKeypair.privateKey,
+      e2ePublicKey: e2eKeypair.publicKey,
+    }
+
+    const serialized = SessionBundle.serialize(bundlePayload)
+    return {
+      expiry: expiryTs,
+      walletAddress: wallet.address,
+      e2ePublicKey: e2eKeypair.publicKey,
+      serialize: () => serialized,
+    }
+  }
+
+  /**
+   * Initialize this seller agent from a serialized session bundle.
+   *
+   * Sets the session EOA wallet (for on-chain delivery signing) and E2E crypto
+   * keypair (for `decryptRequestPayload` / `deliverEncrypted`).
+   *
+   * Call this instead of `initEOAWallet()` + `initCrypto()` when operating
+   * as a delegated session seller.
+   *
+   * @param serializedBundle - The string from `session.serialize()`.
+   */
+  async initWithSession(serializedBundle: string): Promise<void> {
+    const { SessionBundle } = await import('./wallet/session-key.js')
+    const payload = SessionBundle.deserialize(serializedBundle)
+
+    if (payload.expiry < Math.floor(Date.now() / 1000)) {
+      throw new Error('Session bundle has expired. Request a new session from the operator.')
+    }
+
+    await this.initEOAWallet(payload.walletPrivateKey)
+    this.initCrypto(payload.e2ePrivateKey)
+  }
+
   /** Stop the polling loop. */
   stop(): void {
     this.running = false
@@ -251,11 +297,6 @@ export class SellerAgent {
 
   getWalletAddress(): string | null {
     return this.walletAddress
-  }
-
-  /** Returns the resolved gas strategy after initWallet() or initWithSessionKey(). */
-  getGasStrategy(): 'self-funded' | 'erc20' | 'sponsored' | null {
-    return this.resolvedGasStrategy
   }
 
   /**
