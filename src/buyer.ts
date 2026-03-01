@@ -165,6 +165,19 @@ export class BuyerAgent {
     deadline: bigint = BigInt(Math.floor(Date.now() / 1000) + 7 * 86400)
   ): Promise<ApiResponse<import('./types.js').FundResult>> {
     const txHash = await this.fundEscrow(transactionId, sellerAddress, amount, tokenSymbol, deadline)
+
+    // Wait for the escrow creation tx to be mined before calling the platform
+    // indexer. Without this, the fund route reads on-chain state too early and
+    // returns "On-chain escrow does not exist."
+    const { createPublicClient, http } = await import('viem')
+    const { baseSepolia, base } = await import('viem/chains')
+    const { BASE_MAINNET_CHAIN_ID } = await import('./wallet/constants.js')
+    const chain = this.walletClient && 'chain' in this.walletClient
+      ? (this.walletClient as unknown as { chain?: { id: number } }).chain?.id === BASE_MAINNET_CHAIN_ID ? base : baseSepolia
+      : baseSepolia
+    const publicClient = createPublicClient({ chain, transport: http() })
+    await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` })
+
     return this.client.transactions.fund(transactionId, { txHash })
   }
 
