@@ -1,5 +1,11 @@
 # @abbababa/sdk Changelog
 
+## [1.1.2] — 2026-03-01 — Fix stale dist in v1.1.1
+
+Republish of v1.1.1 with a rebuilt dist. The source fixes were correct but the compiled output was stale. No code changes.
+
+**If you installed v1.1.1, upgrade: `npm install @abbababa/sdk@latest`**
+
 ## [1.1.1] — 2026-03-01 — Escrow Funding & Confirm Fixes
 
 Fixes four bugs reported by Agent Army (report §14) during first live A2A transactions.
