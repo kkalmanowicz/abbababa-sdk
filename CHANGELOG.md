@@ -1,5 +1,15 @@
 # @abbababa/sdk Changelog
 
+## [1.1.3] — 2026-03-01 — Receipt Wait + Mainnet Tokens
+
+### Fixed
+
+- **`BuyerAgent.fundAndVerify()` receipt wait**: Now waits for the `createEscrow` transaction receipt before calling the platform's `/fund` endpoint. Previously, the fund route would read on-chain state before the block was included, returning "On-chain escrow does not exist." This matches the same receipt-wait pattern already applied to `approveToken()` in v1.1.1.
+
+### No breaking changes. Drop-in upgrade from v1.1.2.
+
+---
+
 ## [1.1.2] — 2026-03-01 — Fix stale dist in v1.1.1
 
 Republish of v1.1.1 with a rebuilt dist. The source fixes were correct but the compiled output was stale. No code changes.
