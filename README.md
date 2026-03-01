@@ -632,6 +632,13 @@ try {
 
 ## What's New
 
+### v1.1.1 (March 1, 2026) — Escrow Funding & Confirm Fixes
+
+- **Fixed nonce race**: `fundEscrow()` now waits for approve receipt before `createEscrow()`
+- **Fixed 2% fee approval**: `approveToken()` automatically includes the platform fee
+- **Fixed `confirmAndRelease()` order**: on-chain `accept()` first, then API confirm
+- **Fixed confirm API**: platform no longer attempts on-chain `accept()` (only buyer can call)
+
 ### v1.0.0 (February 28, 2026) — Trustless A2A Release
 
 - **BREAKING**: ZeroDev smart accounts removed. EOA wallets only: `initEOAWallet(privateKey)`.

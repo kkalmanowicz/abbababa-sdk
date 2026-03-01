@@ -99,13 +99,17 @@ export class EscrowClient {
 
   /**
    * Approve the escrow contract to spend the settlement token on behalf of the smart account.
-   * Must be called before fundEscrow. Approves amount + 2% fee (calculatePlatformFee).
+   * Must be called before fundEscrow.
+   * Automatically includes the 2% platform fee in the approved amount (ceiling division).
    */
   async approveToken(amount: bigint): Promise<string> {
+    // The contract pulls amount + 2% platform fee from the buyer's allowance.
+    // Use ceiling division to ensure the approved amount always covers the fee.
+    const amountWithFee = (amount * 102n + 99n) / 100n
     const data = encodeFunctionData({
       abi: ERC20_ABI,
       functionName: 'approve',
-      args: [this.escrowAddress, amount],
+      args: [this.escrowAddress, amountWithFee],
     })
 
     const txHash = await this.walletClient.sendTransaction({

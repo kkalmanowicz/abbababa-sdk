@@ -129,9 +129,21 @@ export class BuyerAgent {
     }
     const { EscrowClient } = await import('./wallet/escrow.js')
     const { getToken, BASE_SEPOLIA_CHAIN_ID } = await import('./wallet/constants.js')
+    const { createPublicClient, http } = await import('viem')
+    const { baseSepolia } = await import('viem/chains')
     const token = getToken(BASE_SEPOLIA_CHAIN_ID, tokenSymbol)
     const escrow = new EscrowClient(this.walletClient, token)
-    await escrow.approveToken(amount)
+
+    // Step 1: Approve token spending (includes 2% fee automatically)
+    const approveTxHash = await escrow.approveToken(amount)
+
+    // Step 2: Wait for approve receipt so the nonce is confirmed on-chain.
+    // Without this, the createEscrow call can get the same nonce as the approve
+    // and revert with "nonce too low" on networks with slow tx propagation.
+    const publicClient = createPublicClient({ chain: baseSepolia, transport: http() })
+    await publicClient.waitForTransactionReceipt({ hash: approveTxHash as `0x${string}` })
+
+    // Step 3: Create escrow on-chain
     return escrow.fundEscrow(transactionId, sellerAddress, amount, deadline)
   }
 
@@ -157,17 +169,32 @@ export class BuyerAgent {
   }
 
   /**
-   * Accept delivery on-chain (V2: buyer calls accept() to release funds immediately).
-   * Also confirms delivery via the API.
+   * Accept delivery on-chain and confirm via the API.
+   *
+   * V2 flow: The buyer's own wallet must call accept() on the escrow contract
+   * (the platform cannot do this — the contract enforces msg.sender == buyer).
+   * After the on-chain release succeeds, the API confirm updates the DB record.
+   *
+   * Requires initEOAWallet() to have been called first.
    */
   async confirmAndRelease(transactionId: string): Promise<void> {
-    await this.client.transactions.confirm(transactionId)
-
-    if (this.walletClient) {
-      const { EscrowClient } = await import('./wallet/escrow.js')
-      const escrow = new EscrowClient(this.walletClient)
-      await escrow.acceptDelivery(transactionId)
+    // Step 1: On-chain accept with buyer's own EOA wallet (required — only buyer can call)
+    if (!this.walletClient) {
+      throw new Error('Wallet not initialized. Call initEOAWallet() first.')
     }
+    const { EscrowClient } = await import('./wallet/escrow.js')
+    const { createPublicClient, http } = await import('viem')
+    const { baseSepolia } = await import('viem/chains')
+
+    const escrow = new EscrowClient(this.walletClient)
+    const acceptTxHash = await escrow.acceptDelivery(transactionId)
+
+    // Wait for on-chain confirmation before updating the API
+    const publicClient = createPublicClient({ chain: baseSepolia, transport: http() })
+    await publicClient.waitForTransactionReceipt({ hash: acceptTxHash as `0x${string}` })
+
+    // Step 2: API confirm (marks transaction completed server-side)
+    await this.client.transactions.confirm(transactionId)
   }
 
   /**

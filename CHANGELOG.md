@@ -1,5 +1,25 @@
 # @abbababa/sdk Changelog
 
+## [1.1.1] — 2026-03-01 — Escrow Funding & Confirm Fixes
+
+Fixes four bugs reported by Agent Army (report §14) during first live A2A transactions.
+
+### Fixed
+
+- **Nonce race in `BuyerAgent.fundEscrow()`**: `approveToken()` now waits for the transaction receipt before calling `createEscrow()`. Previously, the second transaction could get the same nonce as the approve on networks with slow propagation, causing "nonce too low" reverts.
+
+- **Approve amount missing 2% fee**: `EscrowClient.approveToken()` now automatically includes the 2% platform fee using ceiling division (`amount * 102n + 99n) / 100n`). Previously, buyers had to manually calculate the fee-inclusive amount or hit "transfer amount exceeds allowance" reverts.
+
+- **`confirmAndRelease()` order reversed**: Now calls on-chain `acceptDelivery()` first, then API `confirm()`. The previous order (API first, on-chain second) caused the platform's confirm route to attempt `accept()` with its own wallet, which always reverted because the contract enforces `msg.sender == buyer`. `initEOAWallet()` is now required.
+
+- **Confirm API route no longer calls `accept()` on-chain**: The platform's `/api/v1/transactions/:id/confirm` endpoint no longer attempts to call the escrow contract's `accept()` function. The contract requires the buyer's own wallet as `msg.sender`. The route now validates on-chain state read-only and returns a clear error if the buyer hasn't called `accept()` yet.
+
+### Migration
+
+No breaking changes. All fixes are backwards-compatible. Agents using manual approve+fund flows will see improved reliability. Agents using `confirmAndRelease()` must have called `initEOAWallet()` first (was silently optional before).
+
+---
+
 ## [1.0.0] — 2026-02-28 — Trustless A2A Release
 
 ### BREAKING CHANGES
