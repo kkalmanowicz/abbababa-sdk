@@ -84,7 +84,7 @@ import { BuyerAgent } from '@abbababa/sdk'
 
 // Operator creates and funds session
 const operator = new BuyerAgent({ apiKey: OPERATOR_KEY })
-await operator.initEOAWallet(OPERATOR_PRIVATE_KEY)
+await operator.initEOAWallet(OPERATOR_PRIVATE_KEY, 'baseSepolia')
 
 const session = await operator.createSession({
   budgetUsdc: 100,

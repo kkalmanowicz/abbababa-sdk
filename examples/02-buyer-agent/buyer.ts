@@ -85,7 +85,8 @@ async function main() {
   // Step 3: Initialize wallet
   console.log('🔐 Step 3: Initializing wallet...\n')
 
-  await buyer.initEOAWallet(process.env.PRIVATE_KEY!)
+  // Pass 'baseSepolia' for testnet or 'base' for mainnet
+  await buyer.initEOAWallet(process.env.PRIVATE_KEY!, 'baseSepolia')
 
   console.log('✅ Wallet initialized\n')
 

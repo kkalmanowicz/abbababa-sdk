@@ -31,6 +31,19 @@ export class BuyerAgent {
     this.client = new AbbaBabaClient(config)
   }
 
+  /**
+   * Detect the chain ID from the wallet client.
+   * Returns the wallet's chain ID if available, otherwise defaults to Base Sepolia.
+   */
+  private async _detectChainId(): Promise<number> {
+    const { BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID } = await import('./wallet/constants.js')
+    if (this.walletClient && 'chain' in this.walletClient) {
+      const chainId = (this.walletClient as unknown as { chain?: { id: number } }).chain?.id
+      if (chainId) return chainId
+    }
+    return BASE_SEPOLIA_CHAIN_ID
+  }
+
   /** Search the marketplace for services. */
   async findServices(
     query: string,
@@ -128,11 +141,15 @@ export class BuyerAgent {
       throw new Error('Wallet not initialized. Call initEOAWallet() first.')
     }
     const { EscrowClient } = await import('./wallet/escrow.js')
-    const { getToken, BASE_SEPOLIA_CHAIN_ID } = await import('./wallet/constants.js')
+    const { getToken } = await import('./wallet/constants.js')
     const { createPublicClient, http } = await import('viem')
-    const { baseSepolia } = await import('viem/chains')
-    const token = getToken(BASE_SEPOLIA_CHAIN_ID, tokenSymbol)
-    const escrow = new EscrowClient(this.walletClient, token)
+    const { baseSepolia, base } = await import('viem/chains')
+    const { BASE_MAINNET_CHAIN_ID } = await import('./wallet/constants.js')
+
+    const chainId = await this._detectChainId()
+    const viemChain = chainId === BASE_MAINNET_CHAIN_ID ? base : baseSepolia
+    const token = getToken(chainId, tokenSymbol)
+    const escrow = new EscrowClient(this.walletClient, token, chainId)
 
     // Step 1: Approve token spending (includes 2% fee automatically)
     const approveTxHash = await escrow.approveToken(amount)
@@ -140,7 +157,7 @@ export class BuyerAgent {
     // Step 2: Wait for approve receipt so the nonce is confirmed on-chain.
     // Without this, the createEscrow call can get the same nonce as the approve
     // and revert with "nonce too low" on networks with slow tx propagation.
-    const publicClient = createPublicClient({ chain: baseSepolia, transport: http() })
+    const publicClient = createPublicClient({ chain: viemChain, transport: http() })
     await publicClient.waitForTransactionReceipt({ hash: approveTxHash as `0x${string}` })
 
     // Step 3: Create escrow on-chain
@@ -172,10 +189,9 @@ export class BuyerAgent {
     const { createPublicClient, http } = await import('viem')
     const { baseSepolia, base } = await import('viem/chains')
     const { BASE_MAINNET_CHAIN_ID } = await import('./wallet/constants.js')
-    const chain = this.walletClient && 'chain' in this.walletClient
-      ? (this.walletClient as unknown as { chain?: { id: number } }).chain?.id === BASE_MAINNET_CHAIN_ID ? base : baseSepolia
-      : baseSepolia
-    const publicClient = createPublicClient({ chain, transport: http() })
+    const chainId = await this._detectChainId()
+    const viemChain = chainId === BASE_MAINNET_CHAIN_ID ? base : baseSepolia
+    const publicClient = createPublicClient({ chain: viemChain, transport: http() })
     await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` })
 
     return this.client.transactions.fund(transactionId, { txHash })
@@ -197,14 +213,23 @@ export class BuyerAgent {
     }
     const { EscrowClient } = await import('./wallet/escrow.js')
     const { createPublicClient, http } = await import('viem')
-    const { baseSepolia } = await import('viem/chains')
+    const { baseSepolia, base } = await import('viem/chains')
+    const { BASE_MAINNET_CHAIN_ID } = await import('./wallet/constants.js')
 
-    const escrow = new EscrowClient(this.walletClient)
+    const chainId = await this._detectChainId()
+    const viemChain = chainId === BASE_MAINNET_CHAIN_ID ? base : baseSepolia
+    const escrow = new EscrowClient(this.walletClient, undefined, chainId)
     const acceptTxHash = await escrow.acceptDelivery(transactionId)
 
     // Wait for on-chain confirmation before updating the API
-    const publicClient = createPublicClient({ chain: baseSepolia, transport: http() })
-    await publicClient.waitForTransactionReceipt({ hash: acceptTxHash as `0x${string}` })
+    const publicClient = createPublicClient({ chain: viemChain, transport: http() })
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: acceptTxHash as `0x${string}` })
+    if (receipt.status === 'reverted') {
+      throw new Error(
+        'acceptDelivery() reverted on-chain. ' +
+        'The seller may not have called submitDelivery() yet — wait for the seller\'s on-chain proof to be mined before confirming.'
+      )
+    }
 
     // Step 2: API confirm (marks transaction completed server-side)
     await this.client.transactions.confirm(transactionId)
@@ -219,7 +244,8 @@ export class BuyerAgent {
       throw new Error('Wallet not initialized. Call initEOAWallet() first.')
     }
     const { EscrowClient } = await import('./wallet/escrow.js')
-    const escrow = new EscrowClient(this.walletClient)
+    const chainId = await this._detectChainId()
+    const escrow = new EscrowClient(this.walletClient, undefined, chainId)
     return escrow.disputeEscrow(transactionId)
   }
 
@@ -232,7 +258,8 @@ export class BuyerAgent {
       throw new Error('Wallet not initialized. Call initEOAWallet() first.')
     }
     const { EscrowClient } = await import('./wallet/escrow.js')
-    const escrow = new EscrowClient(this.walletClient)
+    const chainId = await this._detectChainId()
+    const escrow = new EscrowClient(this.walletClient, undefined, chainId)
     return escrow.claimAbandoned(transactionId)
   }
 
@@ -394,10 +421,11 @@ export class BuyerAgent {
     }
 
     const { EscrowClient } = await import('./wallet/escrow.js')
-    const { getToken, BASE_SEPOLIA_CHAIN_ID } = await import('./wallet/constants.js')
-    const token = getToken(BASE_SEPOLIA_CHAIN_ID, tokenSymbol)
-    if (!token) throw new Error(`Token ${tokenSymbol} not found for chain ${BASE_SEPOLIA_CHAIN_ID}`)
-    const escrow = new EscrowClient(this.walletClient, token)
+    const { getToken } = await import('./wallet/constants.js')
+    const chainId = await this._detectChainId()
+    const token = getToken(chainId, tokenSymbol)
+    if (!token) throw new Error(`Token ${tokenSymbol} not found for chain ${chainId}`)
+    const escrow = new EscrowClient(this.walletClient, token, chainId)
 
     // Transfer USDC to session wallet
     const amountUnits = BigInt(Math.round(session.budgetUsdc * 10 ** token.decimals))
@@ -434,9 +462,10 @@ export class BuyerAgent {
     }
 
     const { EscrowClient } = await import('./wallet/escrow.js')
-    const { getToken, BASE_SEPOLIA_CHAIN_ID } = await import('./wallet/constants.js')
-    const token = getToken(BASE_SEPOLIA_CHAIN_ID, tokenSymbol)
-    const escrow = new EscrowClient(this.walletClient, token)
+    const { getToken } = await import('./wallet/constants.js')
+    const chainId = await this._detectChainId()
+    const token = getToken(chainId, tokenSymbol)
+    const escrow = new EscrowClient(this.walletClient, token, chainId)
 
     return escrow.sweepToken(
       this.walletAddress as `0x${string}`,

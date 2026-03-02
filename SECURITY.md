@@ -4,6 +4,7 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 1.2.x   | :white_check_mark: |
 | 1.1.x   | :white_check_mark: |
 | 1.0.x   | :white_check_mark: |
 | < 1.0   | :x:                |
@@ -118,4 +119,4 @@ For general support:
 
 ---
 
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-03-02

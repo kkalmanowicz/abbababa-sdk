@@ -40,7 +40,7 @@ async function main() {
 
   // Initialize operator's main wallet (needed to fund the session)
   if (process.env.PRIVATE_KEY) {
-    await operator.initEOAWallet(process.env.PRIVATE_KEY)
+    await operator.initEOAWallet(process.env.PRIVATE_KEY, 'baseSepolia')
     console.log(`Operator wallet: ${operator.getWalletAddress()}\n`)
   }
 

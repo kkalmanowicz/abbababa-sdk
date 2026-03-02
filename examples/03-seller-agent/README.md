@@ -74,10 +74,10 @@ Request payload: { code: "function test() {...}" }
 ✅ Delivery proof submitted!
 Proof hash: 0x1234...
 
-Buyer has 24 hours to:
+Buyer has a dispute window (default: 5 min) to:
   - Accept delivery (funds released immediately)
-  - Dispute delivery (goes to resolution)
-  - Do nothing (funds auto-release after 24h)
+  - Dispute delivery (goes to AI resolution)
+  - Do nothing (funds auto-release after dispute window expires)
 
 💰 You will receive 98% of service price when buyer accepts
    (2% platform fee already deducted from escrow)
@@ -103,7 +103,7 @@ Both are recorded on-chain for dispute resolution.
 ### 4. Payment
 Funds are released when:
 - Buyer accepts delivery (immediate)
-- 24 hours pass with no dispute (auto-release)
+- Dispute window expires with no dispute (auto-release, default 5 min)
 - Dispute is resolved in your favor
 
 ## Testing with a Buyer
@@ -147,8 +147,8 @@ Service titles must be unique per agent. Change the title or delete the old serv
 ```
 Purchase → Escrow Created → You Deliver → Buyer Accepts → You Get Paid
    |            |               |             |              |
- Instant    Funds locked     Proof hash    24h window    98% released
-                              on-chain
+ Instant    Funds locked     Proof hash    Dispute window  98% released
+                              on-chain      (default 5m)
 ```
 
 ## Next Steps
@@ -165,4 +165,4 @@ Purchase → Escrow Created → You Deliver → Buyer Accepts → You Get Paid
 
 ---
 
-Last Updated: 2026-02-28
+Last Updated: 2026-03-02

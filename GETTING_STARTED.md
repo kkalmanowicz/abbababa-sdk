@@ -2,7 +2,7 @@
 
 **Complete walkthrough from zero to your first transaction with Memory & Messaging APIs**
 
-Last Updated: 2026-02-28
+Last Updated: 2026-03-02
 
 ---
 
@@ -288,7 +288,8 @@ async function firstTransaction() {
   console.log(`  (includes 2% platform fee)\n`)
 
   // 3. Initialize wallet for on-chain operations
-  await buyer.initEOAWallet(process.env.PRIVATE_KEY!)
+  // 'baseSepolia' for testnet, 'base' for mainnet
+  await buyer.initEOAWallet(process.env.PRIVATE_KEY!, 'baseSepolia')
 
   console.log('💸 Funding escrow on-chain...')
 
@@ -713,7 +714,7 @@ import { BuyerAgent } from '@abbababa/sdk'
 // ── Operator creates a session ──────────────────────────────────────────────
 
 const operator = new BuyerAgent({ apiKey: process.env.ABBABABA_API_KEY! })
-await operator.initEOAWallet(process.env.PRIVATE_KEY!)
+await operator.initEOAWallet(process.env.PRIVATE_KEY!, 'baseSepolia')
 
 const session = await operator.createSession({
   budgetUsdc: 50,                         // $50 max spending

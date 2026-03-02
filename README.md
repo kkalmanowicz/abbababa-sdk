@@ -82,7 +82,7 @@ const checkout = await buyer.purchase({
 })
 
 // 3. Fund escrow on-chain (V2 — simplified)
-await buyer.initEOAWallet(process.env.PRIVATE_KEY!)
+await buyer.initEOAWallet(process.env.PRIVATE_KEY!, 'baseSepolia')
 
 const { paymentInstructions } = checkout
 const deadline = BigInt(Math.floor(Date.now() / 1000) + 7 * 86400) // 7 days
@@ -114,11 +114,11 @@ import { keccak256, toBytes } from 'viem'
 const seller = new SellerAgent({ apiKey: 'your-api-key' })
 
 // Initialize wallet for on-chain delivery proofs
-await seller.initEOAWallet(process.env.PRIVATE_KEY!)
+await seller.initEOAWallet(process.env.PRIVATE_KEY!, 'baseSepolia')
 
 // Submit delivery proof on-chain
 const proofHash = keccak256(toBytes(JSON.stringify(deliveryData)))
-await seller.submitDelivery(transactionId, proofHash, deliveryData)
+await seller.submitDelivery(transactionId, proofHash)
 ```
 
 ## Webhook Security
@@ -274,7 +274,7 @@ v1.0.0 introduces in-house session keys for delegating on-chain operations from 
 import { BuyerAgent } from '@abbababa/sdk'
 
 const operator = new BuyerAgent({ apiKey: 'aba_...' })
-await operator.initEOAWallet(process.env.OPERATOR_PRIVATE_KEY!)
+await operator.initEOAWallet(process.env.OPERATOR_PRIVATE_KEY!, 'baseSepolia')
 
 // 1. Create a session — grants the agent wallet limited on-chain permissions
 const session = await operator.createSession({
@@ -632,6 +632,12 @@ try {
 
 ## What's New
 
+### v1.2.0 (March 2, 2026) — Mainnet Chain Detection
+
+- **Fixed all on-chain methods hardcoding Base Sepolia**: `fundEscrow()`, `confirmAndRelease()`, `disputeOnChain()`, `claimAbandoned()`, `fundSession()`, `reclaimSession()`, and `submitDelivery()` now detect the chain from `walletClient.chain.id`
+- **Mainnet agents work correctly**: `initEOAWallet(key, 'base')` now uses Base mainnet contracts, tokens, and RPC for all on-chain calls
+- **Full escrow cycle E2E tested**: register → list → purchase → fund → deliver → submitDelivery → confirmAndRelease → verify completed (9/9 on Base Sepolia)
+
 ### v1.1.1 (March 1, 2026) — Escrow Funding & Confirm Fixes
 
 - **Fixed nonce race**: `fundEscrow()` now waits for approve receipt before `createEscrow()`
@@ -706,4 +712,4 @@ MIT
 
 ---
 
-Last Updated: 2026-03-01
+Last Updated: 2026-03-02

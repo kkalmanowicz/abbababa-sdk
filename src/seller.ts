@@ -26,6 +26,19 @@ export class SellerAgent {
     this.client = new AbbaBabaClient(config)
   }
 
+  /**
+   * Detect the chain ID from the wallet client.
+   * Returns the wallet's chain ID if available, otherwise defaults to Base Sepolia.
+   */
+  private async _detectChainId(): Promise<number> {
+    const { BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID } = await import('./wallet/constants.js')
+    if (this.walletClient && 'chain' in this.walletClient) {
+      const chainId = (this.walletClient as unknown as { chain?: { id: number } }).chain?.id
+      if (chainId) return chainId
+    }
+    return BASE_SEPOLIA_CHAIN_ID
+  }
+
   /** Register a service on the marketplace. */
   async listService(input: CreateServiceInput): Promise<Service> {
     const res = await this.client.services.create(input)
@@ -107,8 +120,25 @@ export class SellerAgent {
       throw new Error('Wallet not initialized. Call initEOAWallet() first.')
     }
     const { EscrowClient } = await import('./wallet/escrow.js')
-    const escrow = new EscrowClient(this.walletClient)
-    return escrow.submitDelivery(transactionId, proofHash)
+    const { createPublicClient, http } = await import('viem')
+    const { baseSepolia, base } = await import('viem/chains')
+    const { BASE_MAINNET_CHAIN_ID } = await import('./wallet/constants.js')
+
+    const chainId = await this._detectChainId()
+    const viemChain = chainId === BASE_MAINNET_CHAIN_ID ? base : baseSepolia
+    const escrow = new EscrowClient(this.walletClient, undefined, chainId)
+    const txHash = await escrow.submitDelivery(transactionId, proofHash)
+
+    // Wait for the submitDelivery tx to be mined before returning.
+    // Without this, the buyer's accept() call can race ahead and revert
+    // because the on-chain proof hasn't been committed yet.
+    const publicClient = createPublicClient({ chain: viemChain, transport: http() })
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` })
+    if (receipt.status === 'reverted') {
+      throw new Error('submitDelivery() reverted on-chain. Check that the escrow exists and is in Funded status.')
+    }
+
+    return txHash
   }
 
   /**

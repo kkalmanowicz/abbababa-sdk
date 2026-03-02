@@ -65,7 +65,8 @@ async function main() {
   // Step 2: Initialize wallet for on-chain delivery proofs
   console.log('🔐 Step 2: Initializing wallet for delivery proofs...\n')
 
-  await seller.initEOAWallet(process.env.PRIVATE_KEY!)
+  // Pass 'baseSepolia' for testnet or 'base' for mainnet
+  await seller.initEOAWallet(process.env.PRIVATE_KEY!, 'baseSepolia')
 
   console.log('✅ Wallet initialized\n')
 
@@ -117,10 +118,10 @@ async function main() {
 
       console.log('✅ Delivery proof submitted!')
       console.log(`Proof hash: ${proofHash}`)
-      console.log(`\nBuyer has 24 hours to:`)
+      console.log(`\nBuyer has a dispute window (default: 5 min) to:`)
       console.log(`  - Accept delivery (funds released immediately)`)
-      console.log(`  - Dispute delivery (goes to resolution)`)
-      console.log(`  - Do nothing (funds auto-release after 24h)\n`)
+      console.log(`  - Dispute delivery (goes to AI resolution)`)
+      console.log(`  - Do nothing (funds auto-release after dispute window expires)\n`)
 
       console.log('💰 You will receive 98% of service price when buyer accepts')
       console.log('   (2% platform fee already deducted from escrow)\n')

@@ -1,5 +1,31 @@
 # @abbababa/sdk Changelog
 
+## [1.2.0] — 2026-03-02 — Mainnet Chain Detection
+
+All on-chain methods now detect the wallet's chain dynamically instead of hardcoding Base Sepolia. Required for mainnet agents.
+
+### Fixed
+
+- **`BuyerAgent.fundEscrow()` hardcoded testnet**: Detects chain from `walletClient.chain.id`, uses correct USDC address, escrow contract, and RPC.
+- **`BuyerAgent.fundAndVerify()` chain detection**: Refactored to shared `_detectChainId()` helper.
+- **`BuyerAgent.confirmAndRelease()` hardcoded testnet**: Chain-aware `EscrowClient` and `publicClient`.
+- **`BuyerAgent.disputeOnChain()` hardcoded testnet**: Chain-aware `EscrowClient`.
+- **`BuyerAgent.claimAbandoned()` hardcoded testnet**: Chain-aware `EscrowClient`.
+- **`BuyerAgent.fundSession()` hardcoded testnet**: Correct chain USDC and RPC.
+- **`BuyerAgent.reclaimSession()` hardcoded testnet**: Correct chain token addresses.
+- **`SellerAgent.submitDelivery()` hardcoded testnet**: Chain-aware `EscrowClient` and receipt wait.
+
+### Added
+
+- `BuyerAgent._detectChainId()` / `SellerAgent._detectChainId()` — private helpers reading `walletClient.chain.id`, falling back to `BASE_SEPOLIA_CHAIN_ID`.
+- 24 chain detection unit tests, full escrow cycle E2E (9/9), chain dry-run E2E (13/13), API E2E (24/24).
+
+### Migration
+
+No breaking changes. Drop-in upgrade from v1.1.3. **Mainnet agents**: `initEOAWallet(key, 'base')` now correctly uses Base mainnet contracts. On v1.1.3 this silently used testnet addresses.
+
+---
+
 ## [1.1.3] — 2026-03-01 — Receipt Wait + Message Fixes
 
 ### Fixed
