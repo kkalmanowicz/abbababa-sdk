@@ -1,10 +1,14 @@
 # @abbababa/sdk Changelog
 
-## [1.1.3] — 2026-03-01 — Receipt Wait + Mainnet Tokens
+## [1.1.3] — 2026-03-01 — Receipt Wait + Message Fixes
 
 ### Fixed
 
 - **`BuyerAgent.fundAndVerify()` receipt wait**: Now waits for the `createEscrow` transaction receipt before calling the platform's `/fund` endpoint. Previously, the fund route would read on-chain state before the block was included, returning "On-chain escrow does not exist." This matches the same receipt-wait pattern already applied to `approveToken()` in v1.1.1.
+
+- **`messages.send()` now accepts string body**: `SendMessageInput.body` type widened from `Record<string, unknown>` to `string | Record<string, unknown>`. String bodies are auto-coerced to `{ text: "..." }` by the API. Existing Record bodies work unchanged. (Agent Army §16a)
+
+- **Inbox `status: 'unread'` now works**: The inbox API now accepts `status: 'unread'` as a filter, which returns all messages where `readAt` is null (regardless of delivery status). Previously, messages arrived with `status: 'pending'` and filtering by `'unread'` returned zero results. (Agent Army §16b)
 
 ### No breaking changes. Drop-in upgrade from v1.1.2.
 

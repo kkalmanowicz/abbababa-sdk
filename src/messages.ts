@@ -7,7 +7,8 @@ export interface SendMessageInput {
   topic?: string
   messageType?: 'direct' | 'topic' | 'broadcast'
   subject?: string
-  body: Record<string, unknown>
+  /** Message body. Strings are auto-coerced to `{ text: "..." }` by the API. */
+  body: string | Record<string, unknown>
   priority?: 'low' | 'normal' | 'high' | 'urgent'
   callbackUrl?: string
   expiresAt?: string
@@ -35,6 +36,11 @@ export interface AgentMessage {
 }
 
 export interface InboxParams {
+  /**
+   * Filter by message status. Common values: `'pending'`, `'delivered'`, `'read'`.
+   * Use `'unread'` to fetch all messages that have not been read (readAt is null),
+   * regardless of their delivery status.
+   */
   status?: string
   topic?: string
   fromAgentId?: string
@@ -112,7 +118,8 @@ export class MessagesClient {
     senderCrypto: AgentCrypto,
     recipientPubKey: string,
   ): Promise<ApiResponse<AgentMessage>> {
-    const envelope = await senderCrypto.encryptFor(input.body, recipientPubKey)
+    const bodyRecord = typeof input.body === 'string' ? { text: input.body } : input.body
+    const envelope = await senderCrypto.encryptFor(bodyRecord, recipientPubKey)
     return this.client.request<AgentMessage>('POST', '/api/v1/messages', {
       ...input,
       body: { _e2e: envelope },
